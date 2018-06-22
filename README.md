@@ -19,7 +19,10 @@ So, you don't need to write any code - you can create your own flow with UI tool
 
 | description | route | method | params | output | 
 | --------- | ---- | - | ---- | --- | 
-| sign transation in select blockchain, used keys for selected address | /sign/:blockchain/:address | POST | ```{tx: <txObject>}``` [waves](examples/input_waves.md) | [waves](examples/output_waves.md)
+| sign transation in waves, used seed for selected address | /sign/waves/:address | POST | ```{<txObject>}``` [waves](examples/input_waves.md)  | [waves](examples/output_waves.md)
+| sign transation in nem, used keys for selected address | /sign/nem/:address | POST | ```{<txObject>}``` [nem](examples/input_nem.md)  | [nem](examples/output_nem.md)
+| sign transation in eth, used keys for selected address | /sign/eth/:address | POST | ```{<txObject>}``` [eth](examples/input_eth.md)  | [eth](examples/output_eth.md)
+| sign transation in bitcoin, used keys for selected address | /sign/bitcoin/:address | POST | ```{<txObject>}``` [waves](examples/input_bitcoin.md)  | [bitcoin](examples/output_bitcoin.md)
 
 
 ##### сonfigure your .env

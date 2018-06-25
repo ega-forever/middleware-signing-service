@@ -56,6 +56,7 @@ License
 ----
  [GNU AGPLv3](LICENSE)
 
+
 Copyright
 ----
 LaborX PTY

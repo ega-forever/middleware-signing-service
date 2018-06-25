@@ -15,15 +15,15 @@ const blockchains = {
 module.exports = (signKeys) => {
   const getBlockchainKeys = (blockchain) => _.get(signKeys, blockchain, []);
   const getBlockchainService = (blockchain) => {
-    if (!blockchains[blockchain])
+    if (!_.has(blockchains, blockchain))
       throw new Error('not found this blockchain ' + blockchain);
- 
+
     return blockchains[blockchain];
   };
 
   const getKey = (blockchainKeys, address) => {
-    if (!blockchainKeys[address]) 
-      throw new Error('not found seed for address ' + address);
+    if (!_.has(blockchainKeys, address)) 
+      throw new Error('not found key for address ' + address);
     return blockchainKeys[address];
   };
 

@@ -34,7 +34,7 @@ describe('core/service-tx', function () { //todo add integration tests for query
       fee: 100000,
       // 140 bytes of data (it's allowed to use Uint8Array here)
       attachment: '',
-      timestamp: Date.now()
+      timestamp: 1529883845418
     };
 
     await new Promise((res, rej) => {
@@ -45,9 +45,9 @@ describe('core/service-tx', function () { //todo add integration tests for query
       }, async (err, resp) => {
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);
-        const tx = resp.body.tx;
+        const tx = resp.body;
         expect(tx).not.to.be.not.null;
-        expect(tx.signature).to.be.eq('wRx6TEshbCUdgnF8KEzcEbwH9SuFv8k5gmuypZz1X5pd3zjNF6vj4EA7bLAmJ7QM7Dou3PRQdHFdF2GQFD4uuw');
+        expect(tx.signature).to.be.eq('3ZCAP7PPgtUia8VzNetJEQ3DWZ6XtBb1ophYgyERefAdVYGqFa1Epud22mFwtiAadvBX56GSAKT2njXQr1MhpwCQ');
         res();
       });
     });
@@ -59,27 +59,31 @@ describe('core/service-tx', function () { //todo add integration tests for query
     const transferData = {
       "inputs" : [
         {
-          "txId": "b52623a5d1dc0ce9e33aedabecb9c32e30176405a79eaeaa433897277e3a3699", 
+          "txId": "bca25f801addad0524db65ae28101e7507e08e979778542c55f18275f92c2c8b", 
           "vout": 0
         }
       ], "outputs": [
         {
-          "address": "1PQu7or13GWCBpajsnQG89fRwjoMkbw5eP", 
-          "value": 100
+          "address": "17iReumfvS9wALjZTvmcAu45GtxfWfa8Gq", 
+          "value": 62500000
+        },
+        {
+          "address": "1GFg71G2r9g6xi1YQ99LRGDpuSYssZokcW", 
+          "value": 156250000
         }
       ]
     };
 
     await new Promise((res, rej) => {
       request({
-        url: `http://localhost:${config.rest.port}/sign/waves/1LgGUA9v2Jria53vAzhKQLsBXY4csAp3pf`,
+        url: `http://localhost:${config.rest.port}/sign/bitcoin/RPoB3FSy5S8jfvQNgdM6Eo1ar3iheih4p4`,
         method: 'POST',
         json: {tx: transferData}
       }, async (err, resp) => {
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);
         const tx = resp.body;
-        expect(tx.hex).to.be.eq('010000000199363a7e27973843aaae9ea7056417302ec3b9ecabed3ae3e90cdcd1a52326b5000000006a47304402203d3fa1080d8406c98f192d281237e5a3790e88eb8b85fbd6d7220ace25d2f7dc022056f7c6ef50a9c797f79e9e9736db88bb9a2106be4be346d89ec5d5100cd2e6790121033e1b6da9f1d8588d5e320df200bff9890d56829ac3df2b06c4f0cc2c14469208ffffffff0164000000000000001976a914f5d7d6fa4ddbcfa21f85e84d68d6e97b2582937b88ac00000000');
+        expect(tx.hex).to.be.eq('01000000018b2c2cf97582f1552c547897978ee007751e1028ae65db2405addd1a805fa2bc000000006b483045022100dbc886159c987b7683c3abf1b3daa28bbb5aab49d3db9a0e479bdd35d3e77e1602202473182e30dbcff31c0007a3a87f5d3b5cb4855d3b3ed8b0835f77c9d1f12f3901210292887d6b6d709fb9a3b772fc01f3449c816796819e73e7cb28456198a9841c91ffffffff02a0acb903000000001976a91449a663918e391b402ea861f194441f78071b524f88ac902f5009000000001976a914a7505a29d514ebd2d0572f38dc1f55dd24fed67888ac00000000');
         res();
       });
     });
@@ -101,14 +105,14 @@ describe('core/service-tx', function () { //todo add integration tests for query
 
     await new Promise((res, rej) => {
       request({
-        url: `http://localhost:${config.rest.port}/sign/eth/TAHZD4PLMR4OX3OLNMJCC726PNLXCJMCFWR2JI3D`,
+        url: `http://localhost:${config.rest.port}/sign/eth/294f3c4670a56441f3133835a5cbb8baaf010f88`,
         method: 'POST',
         json: {tx: transferData}
       }, async (err, resp) => {
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);
         const tx = resp.body;
-        expect(tx.signature).to.be.eq('wRx6TEshbCUdgnF8KEzcEbwH9SuFv8k5gmuypZz1X5pd3zjNF6vj4EA7bLAmJ7QM7Dou3PRQdHFdF2GQFD4uuw');
+        expect(tx.hex).to.be.eq('f889808609184e72a00082271094000000000000000000000000000000000000000080a47f74657374320000000000000000000000000000000000000000000000000000006000572aa0c86794da2b0ebe25bd8d3db7dff91b12736886e4eefe3096b759110cdb9d1deda057250c335b833ddefb5af531dcd6a25f1f8045b6990d12e7c70025b7e24ed21f');
         res();
       });
     });
@@ -138,7 +142,7 @@ describe('core/service-tx', function () { //todo add integration tests for query
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);
         const tx = resp.body;
-        expect(tx.signature).to.be.eq('wRx6TEshbCUdgnF8KEzcEbwH9SuFv8k5gmuypZz1X5pd3zjNF6vj4EA7bLAmJ7QM7Dou3PRQdHFdF2GQFD4uuw');
+        expect(tx.signer).to.be.eq('8e997e65732dd0fe1c141fd86a83a41834e2f3971d20e08131469696e6a9fb23');
         res();
       });
     });

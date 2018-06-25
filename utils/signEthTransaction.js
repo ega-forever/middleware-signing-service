@@ -4,7 +4,7 @@
  * Licensed under the AGPL Version 3 license.
  * @author Kirill Sergeev <cloudkserg11@gmail.com>
  */
-const EthereumTx = require('ethereumjs-tx')
+const EthereumTx = require('ethereumjs-tx');
 
 module.exports = (privateKey, tx) => {
   const privateKeyHex = Buffer.from(privateKey, 'hex');
@@ -20,5 +20,5 @@ module.exports = (privateKey, tx) => {
   };
   const outTx = new EthereumTx(txParams);
   outTx.sign(privateKeyHex);
-  return outTx.serialize();
+  return  {hex: outTx.serialize().toString('hex')};
 };

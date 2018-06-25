@@ -8,7 +8,6 @@ node_js: 8.11.1
 services:
 
 before_install:
-  - mongo data --eval 'db.dropDatabase();'
   - sudo apt-get update
   - sudo apt-get install python2.7 git-all pkg-config libncurses5-dev libssl-dev libnss3-dev libexpat-dev libc6-dev -y
 

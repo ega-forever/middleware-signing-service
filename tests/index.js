@@ -7,13 +7,7 @@ require('dotenv/config');
 
 const config = require('../config'),
   Promise = require('bluebird'),
-  bitcore = require('bitcore-lib'),
-  bcoin = require('bcoin'),
- bigi = require('bigi'),
-  bitcoin = require('bitcoinjs-lib'),
-  expect = require('chai').expect,
-  nem = require('nem-sdk').default,
-  _ = require('lodash');
+  expect = require('chai').expect;
 
 
 const request = require('request');

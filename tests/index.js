@@ -31,11 +31,31 @@ describe('core/service-tx', function () { //todo add integration tests for query
       timestamp: 1529883845418
     };
 
+    const tx2 = {
+            // An arbitrary address; mine, in this example
+            recipient: '3Jk2fh8aMBmhCQCkBcUfKBSEEa3pDMkDjCr',
+            // ID of a token, or WAVES
+            assetId: null,
+            // The real amount is the given number divided by 10^(precision of the token)
+            amount: 1000,
+            // The same rules for these two fields
+            feeAsset: null,
+            fee: 100000,
+            // 140 bytes of data (it's allowed to use Uint8Array here)
+            attachment: '',
+            timestamp: Date.now()
+    };
+
+    const sign = config.nodered.functionGlobalContext.libs.signingService;
+    const a = await sign('waves',  '3JfE6tjeT7PnpuDQKxiVNLn4TJUFhuMaaT5', tx2);
+    console.log(a);return;
+
+
     await new Promise((res, rej) => {
       request({
         url: `http://localhost:${config.rest.port}/sign/waves/3JfE6tjeT7PnpuDQKxiVNLn4TJUFhuMaaT5`,
         method: 'POST',
-        json: {tx: transferData}
+        json: transferData
       }, async (err, resp) => {
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);
@@ -72,7 +92,7 @@ describe('core/service-tx', function () { //todo add integration tests for query
       request({
         url: `http://localhost:${config.rest.port}/sign/bitcoin/RPoB3FSy5S8jfvQNgdM6Eo1ar3iheih4p4`,
         method: 'POST',
-        json: {tx: transferData}
+        json: transferData
       }, async (err, resp) => {
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);
@@ -101,7 +121,7 @@ describe('core/service-tx', function () { //todo add integration tests for query
       request({
         url: `http://localhost:${config.rest.port}/sign/eth/294f3c4670a56441f3133835a5cbb8baaf010f88`,
         method: 'POST',
-        json: {tx: transferData}
+        json: transferData
       }, async (err, resp) => {
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);
@@ -131,7 +151,7 @@ describe('core/service-tx', function () { //todo add integration tests for query
       request({
         url: `http://localhost:${config.rest.port}/sign/nem/TAHZD4PLMR4OX3OLNMJCC726PNLXCJMCFWR2JI3D`,
         method: 'POST',
-        json: {tx: transferData}
+        json: transferData
       }, async (err, resp) => {
         if (err || resp.statusCode !== 200) 
           return rej(err || resp);

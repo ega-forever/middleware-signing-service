@@ -5,6 +5,9 @@
  * @author Kirill Sergeev <cloudkserg11@gmail.com>
  */
 const nem = require('nem-sdk').default;
+const Serialization  = nem.utils.serialization;
+const KeyPair  = nem.crypto.keyPair;
+const Helpers  = nem.utils.helpers;
 
 module.exports = (privateKey, transferTransaction) => {
   // Create an un-prepared transfer transaction object
@@ -12,11 +15,18 @@ module.exports = (privateKey, transferTransaction) => {
 
   const common = nem.model.objects.create('common')('',  privateKey);
 
+
   // Prepare the transfer transaction object
-  return nem.model.transactions.prepare('transferTransaction')(
+  const tx = nem.model.transactions.prepare('transferTransaction')(
     common, 
     transferTransaction, 
-    'testnet'
+    transferTransaction.version || 'testnet'
   );
 
+
+  let kp = KeyPair.create(Helpers.fixPrivateKey(privateKey));
+  let result = Serialization.serializeTransaction(tx);
+  tx.signature = kp.sign(result).toString();
+
+  return tx;
 };

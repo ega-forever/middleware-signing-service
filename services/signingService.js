@@ -27,9 +27,9 @@ module.exports = (signKeys) => {
     return blockchainKeys[address];
   };
 
-  return (blockchain, address, tx) => {
+  return async (blockchain, address, tx) => {
     const signTx = getBlockchainService(blockchain);
     const key = getKey(getBlockchainKeys(blockchain), address);
-    return signTx(key, tx);
+    return await signTx(key, tx);
   };
 };

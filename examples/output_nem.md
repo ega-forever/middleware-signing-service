@@ -8,6 +8,7 @@
   "recipient": "TAX7OUHMQSTDXOMYJIKHFILRKOLVYGECG47FPKGQ",
   "amount": 10000000000,
   "fee": 100000,
+  "signature": "e032c9e35055c527316db609bd3284d8f553b7c78a27656eb4785cea75db5accd4ce810ffbe655d19e6f3cfabf2fed054445528770e8232aa83d4a2b87bee709",
   "message": { "type": 1, "payload": "48656c6c6f" },
   "mosaics": null 
 }

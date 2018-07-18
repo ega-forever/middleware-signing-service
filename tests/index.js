@@ -15,6 +15,44 @@ const request = require('request');
 
 describe('core/service-tx', function () { //todo add integration tests for query, push tx, history and erc20tokens
 
+
+  it('create bitcoin tx and signing', async () => {
+    
+    const transferData = {
+      "inputs" : [
+        {
+          "txId": "bca25f801addad0524db65ae28101e7507e08e979778542c55f18275f92c2c8b", 
+          "vout": 0
+        }
+      ], "outputs": [
+        {
+          "address": "17iReumfvS9wALjZTvmcAu45GtxfWfa8Gq", 
+          "value": 62500000
+        },
+        {
+          "address": "1GFg71G2r9g6xi1YQ99LRGDpuSYssZokcW", 
+          "value": 156250000
+        }
+      ]
+    };
+
+    await new Promise((res, rej) => {
+      request({
+        url: `http://localhost:${config.rest.port}/sign/bitcoin/RPoB3FSy5S8jfvQNgdM6Eo1ar3iheih4p4`,
+        method: 'POST',
+        json: transferData
+      }, async (err, resp) => {
+        if (err || resp.statusCode !== 200) 
+          return rej(err || resp);
+        const tx = resp.body;
+        expect(tx.hex).to.be.eq('01000000018b2c2cf97582f1552c547897978ee007751e1028ae65db2405addd1a805fa2bc000000006b483045022100dbc886159c987b7683c3abf1b3daa28bbb5aab49d3db9a0e479bdd35d3e77e1602202473182e30dbcff31c0007a3a87f5d3b5cb4855d3b3ed8b0835f77c9d1f12f3901210292887d6b6d709fb9a3b772fc01f3449c816796819e73e7cb28456198a9841c91ffffffff02a0acb903000000001976a91449a663918e391b402ea861f194441f78071b524f88ac902f5009000000001976a914a7505a29d514ebd2d0572f38dc1f55dd24fed67888ac00000000');
+        res();
+      });
+    });
+
+  });
+
+
   it('create waves tx and signing', async () => {
     const transferData = {
       // An arbitrary address; mine, in this example
@@ -62,42 +100,6 @@ describe('core/service-tx', function () { //todo add integration tests for query
         const tx = resp.body;
         expect(tx).not.to.be.not.null;
         expect(tx.signature).to.be.eq('3ZCAP7PPgtUia8VzNetJEQ3DWZ6XtBb1ophYgyERefAdVYGqFa1Epud22mFwtiAadvBX56GSAKT2njXQr1MhpwCQ');
-        res();
-      });
-    });
-
-  });
-
-  it('create bitcoin tx and signing', async () => {
-    
-    const transferData = {
-      "inputs" : [
-        {
-          "txId": "bca25f801addad0524db65ae28101e7507e08e979778542c55f18275f92c2c8b", 
-          "vout": 0
-        }
-      ], "outputs": [
-        {
-          "address": "17iReumfvS9wALjZTvmcAu45GtxfWfa8Gq", 
-          "value": 62500000
-        },
-        {
-          "address": "1GFg71G2r9g6xi1YQ99LRGDpuSYssZokcW", 
-          "value": 156250000
-        }
-      ]
-    };
-
-    await new Promise((res, rej) => {
-      request({
-        url: `http://localhost:${config.rest.port}/sign/bitcoin/RPoB3FSy5S8jfvQNgdM6Eo1ar3iheih4p4`,
-        method: 'POST',
-        json: transferData
-      }, async (err, resp) => {
-        if (err || resp.statusCode !== 200) 
-          return rej(err || resp);
-        const tx = resp.body;
-        expect(tx.hex).to.be.eq('01000000018b2c2cf97582f1552c547897978ee007751e1028ae65db2405addd1a805fa2bc000000006b483045022100dbc886159c987b7683c3abf1b3daa28bbb5aab49d3db9a0e479bdd35d3e77e1602202473182e30dbcff31c0007a3a87f5d3b5cb4855d3b3ed8b0835f77c9d1f12f3901210292887d6b6d709fb9a3b772fc01f3449c816796819e73e7cb28456198a9841c91ffffffff02a0acb903000000001976a91449a663918e391b402ea861f194441f78071b524f88ac902f5009000000001976a914a7505a29d514ebd2d0572f38dc1f55dd24fed67888ac00000000');
         res();
       });
     });
@@ -162,4 +164,5 @@ describe('core/service-tx', function () { //todo add integration tests for query
     });
 
   });
+  
 });

@@ -4,20 +4,15 @@
  * Licensed under the AGPL Version 3 license.
  * @author Kirill Sergeev <cloudkserg11@gmail.com>
  */
-const EthereumTx = require('ethereumjs-tx');
+const EthereumTx = require('ethereumjs-tx'),
+  _ = require('lodash');
 
 module.exports = (privateKey, tx) => {
   const privateKeyHex = Buffer.from(privateKey, 'hex');
   
-  const txParams = {
-    nonce: tx.nonce || '0x00',
-    gasPrice: tx.gasPrice || '0x09184e72a000', 
-    gasLimit: tx.gasLimit || '0x2710',
-    to: tx.to, 
-    value: tx.value, 
-    data: tx.data,
-    chainId: tx.chainId || 3
-  };
+  const txParams = _.merge({}, tx, {
+    to: tx.to.length === 20 ? tx.to : '0x' + tx.to
+  });
   const outTx = new EthereumTx(txParams);
   outTx.sign(privateKeyHex);
   return  {hex: outTx.serialize().toString('hex')};

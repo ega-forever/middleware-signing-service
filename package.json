@@ -15,7 +15,8 @@
     "middleware_service.sdk": "github:cloudkserg/middleware-service-sdk",
     "nem-sdk": "^1.6.6",
     "node-ipc": "^9.1.1",
-    "request": "^2.83.0"
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2"
   },
   "scripts": {
     "lint": "node ./node_modules/eslint/bin/eslint.js -c .eslintrc.js --ext .js --fix --ignore-path .eslintignore .",

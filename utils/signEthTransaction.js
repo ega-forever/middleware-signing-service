@@ -11,7 +11,7 @@ module.exports = (privateKey, tx) => {
   const privateKeyHex = Buffer.from(privateKey, 'hex');
   
   const txParams = _.merge({}, tx, {
-    to: tx.to.length === 20 ? tx.to : '0x' + tx.to
+    to: tx.to.length === 42 ? tx.to : '0x' + tx.to
   });
   const outTx = new EthereumTx(txParams);
   outTx.sign(privateKeyHex);

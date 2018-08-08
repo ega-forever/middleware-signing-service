@@ -16,8 +16,7 @@ module.exports = (sequelize) => {
     }
   }, {
     indexes: [
-      {fields: ['address']},
-      {fields: ['keyAddress']}
+      {fields: ['address', 'keyAddress'], unique: true}
     ]
   });
 

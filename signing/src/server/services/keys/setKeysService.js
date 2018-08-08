@@ -1,7 +1,6 @@
 const dbInstance = require('../../controllers/dbController').get(),
   Web3 = require('web3'),
   _ = require('lodash'),
-  Promise = require('bluebird'),
   web3 = new Web3();
 
 module.exports = async (req, res) => {
@@ -34,14 +33,13 @@ module.exports = async (req, res) => {
 
 
   for (let owner of req.body.owners)
-    await Promise.mapSeries(owner.keys, async index => {
+    for(let index of owner.keys){
       const address = web3.eth.accounts.privateKeyToAccount(req.body.keys[index]).address.toLowerCase();
       await dbInstance.models.AccountKeys.create({
         address: owner.address.toLowerCase(),
         keyAddress: address
       });
-    });
-
+    }
 
   return res.send({status: 1});
 };

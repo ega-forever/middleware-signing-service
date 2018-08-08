@@ -1,21 +1,20 @@
-/** 
-* Copyright 2017–2018, LaborX PTY
-* Licensed under the AGPL Version 3 license.
-* @author Kirill Sergeev <cloudkserg11@gmail.com>
-*/
+const keystone = require('keystone'),
+  plugins = require('./plugins');
 
-const config = require('./config'),
-  path = require('path'),
-  migrator = require('middleware_service.sdk').migrator,
-  redInitter = require('middleware_service.sdk').init;
+keystone.init({
+  'cookie secret': 'secure string goes here',
+});
 
 
-const init = async () => {
+keystone.init({
+  'cookie secret': 'secure string goes here',
+  'name': 'my-project',
+  'user model': 'User',
+  'auto update': true,
+  'auth': true,
+  mongo: 'mongodb://localhost:32777/singing-service'
+});
 
-  if (config.nodered.autoSyncMigrations)
-    await migrator.run(config.nodered.uri, path.join(__dirname, 'migrations'), '_migrations', config.nodered.useLocalStorage);
+keystone.import('models');
 
-  redInitter(config);
-};
-
-module.exports = init();
+keystone.start();

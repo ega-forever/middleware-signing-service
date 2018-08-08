@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
 
   const items = [];
 
-  for(let masterKey of masterKeys){
+  for (let masterKey of masterKeys) {
 
     let item = {
       keyAddresses: [masterKey.address],
@@ -20,8 +20,8 @@ module.exports = async (req, res) => {
       }
     });
 
-    if(childKeys.length)
-      item.keyAddresses.push(...childKeys.map(key=>key.address));
+    if (childKeys.length)
+      item.keyAddresses.push(...childKeys.map(key => key.address));
 
     const owners = await dbInstance.models.AccountKeys.findAll({
       where: {
@@ -32,9 +32,12 @@ module.exports = async (req, res) => {
     item.owners = _.chain(owners)
       .groupBy('address')
       .toPairs()
-      .map(pair=>({
+      .map(pair => ({
         address: pair[0],
-        keys: pair[1].map(ownerItem=> item.keyAddresses.indexOf(ownerItem.keyAddress))
+        keys: _.chain(pair[1])
+          .map(ownerItem => item.keyAddresses.indexOf(ownerItem.keyAddress))
+          .sort()
+          .value()
       }))
       .value();
 

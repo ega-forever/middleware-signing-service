@@ -1,4 +1,5 @@
-const dbInstance = require('../../controllers/dbController').get();
+const dbInstance = require('../../controllers/dbController').get(),
+  genericMessages = require('../../factories/messages/genericMessages');
 
 module.exports = async (req, res) => {
 
@@ -9,5 +10,5 @@ module.exports = async (req, res) => {
   });
 
   await dbInstance.models.Clients.destroy({where: {clientId: req.clientId}});
-  return res.send({status: 1});
+  return res.send(genericMessages.success);
 };

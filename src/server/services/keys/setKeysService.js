@@ -1,6 +1,8 @@
 const dbInstance = require('../../controllers/dbController').get(),
   Web3 = require('web3'),
   _ = require('lodash'),
+  genericMessages = require('../../factories/messages/genericMessages'),
+  keyMessages = require('../../factories/messages/keysMessages'),
   hdkey = require('ethereumjs-wallet/hdkey'),
   extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
   web3 = new Web3();
@@ -8,15 +10,10 @@ const dbInstance = require('../../controllers/dbController').get(),
 module.exports = async (req, res) => {
 
   if (!req.body.key && !_.get(req.body, '0.key'))
-    return res.send({}); //todo add error
+    return res.send(keyMessages.badParams); //todo add error
 
   if (req.body.key)
     req.body = [req.body.key];
-
-  const client = await dbInstance.models.Clients.findOne({where: {clientId: req.clientId}});
-
-  if (!client)
-    return res.send({}); //todo add error
 
   for (let key of req.body) {
     const extendedKey = extractExtendedKey(key.key);
@@ -35,5 +32,5 @@ module.exports = async (req, res) => {
   }
 
 
-  return res.send({status: 1});
+  return res.send(genericMessages.success);
 };

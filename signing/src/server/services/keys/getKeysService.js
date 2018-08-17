@@ -1,50 +1,30 @@
 const dbInstance = require('../../controllers/dbController').get(),
+  plugins = require('../../plugins'),
+  config = require('../../config'),
   _ = require('lodash');
 
 module.exports = async (req, res) => {
 
-  const masterKeys = await dbInstance.models.Keys.findAll({where: {masterKeyAddress: null}});
 
-  const items = [];
+  let keys = await dbInstance.models.Keys.findAll({where: {clientId: req.clientId}});
 
-  for (let masterKey of masterKeys) {
+  keys = keys.map(key => {
+    const pubKeys = [];
 
-    let item = {
-      keyAddresses: [masterKey.address],
-      owners: []
-    };
+    for (let index = 0; index < key.pubKeysCount; index++) {
+      const pubKey = _.chain(plugins).toPairs().transform((result, pair)=>{
+        result[pair[0]] = new pair[1](config.network).getPublicKey(key.privateKey, index)
+      }, {}).value();
 
-    const childKeys = await dbInstance.models.Keys.findAll({
-      where: {
-        masterKeyAddress: masterKey.address
-      }
-    });
+      pubKeys.push(pubKey);
+    }
 
-    if (childKeys.length)
-      item.keyAddresses.push(...childKeys.map(key => key.address));
+    return {
+      address: key.address,
+      pubKeys: pubKeys,
+      default: key.default
+    }
+  });
 
-    const owners = await dbInstance.models.AccountKeys.findAll({
-      where: {
-        keyAddress: {$in: item.keyAddresses}
-      }
-    });
-
-    item.owners = _.chain(owners)
-      .groupBy('address')
-      .toPairs()
-      .map(pair => ({
-        address: pair[0],
-        keys: _.chain(pair[1])
-          .map(ownerItem => item.keyAddresses.indexOf(ownerItem.keyAddress))
-          .sort()
-          .value()
-      }))
-      .value();
-
-
-    items.push(item)
-  }
-
-
-  return res.send(items);
+  return res.send(keys);
 };

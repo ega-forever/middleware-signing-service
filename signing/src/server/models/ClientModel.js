@@ -2,22 +2,20 @@ const Sequelize = require('sequelize');
 
 module.exports = (sequelize) => {
 
-  return sequelize.define('AccountKeys', {
+  return sequelize.define('Clients', {
     id: {
       type: Sequelize.INTEGER,
       autoIncrement: true,
       primaryKey: true
     },
-    address: {
-      type: Sequelize.STRING
+    clientId: {
+      type: Sequelize.STRING,
+      allowNull: false,
+      unique: true
     },
-    keyAddress: {
+    clientName: {
       type: Sequelize.STRING
     }
-  }, {
-    indexes: [
-      {fields: ['address', 'keyAddress'], unique: true}
-    ]
   });
 
 

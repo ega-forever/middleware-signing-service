@@ -1,8 +1,6 @@
 const dbInstance = require('../../controllers/dbController').get(),
   Web3 = require('web3'),
   _ = require('lodash'),
-  hdkey = require('ethereumjs-wallet/hdkey'),
-  extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
   web3 = new Web3();
 
 module.exports = async (req, res) => {
@@ -19,18 +17,16 @@ module.exports = async (req, res) => {
     return res.send({}); //todo add error
 
   for (let key of req.body) {
-    const extendedKey = extractExtendedKey(key.key);
-    const privateKey = extendedKey ? hdkey.fromExtendedKey(extendedKey).getWallet().getPrivateKey() : key.key;
-
-    const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+    const account = web3.eth.accounts.privateKeyToAccount(key.key);
     await dbInstance.models.Keys.create({
-      clientId: req.clientId,
-      pubKeysCount: key.pubKeys || 1,
-      isStageChild: !!key.stageChild,
-      privateKey: extendedKey || key.key,
+      privateKey: key.key,
       address: account.address.toLowerCase(),
-      default: !!key.default,
-      derivePath: extendedKey ? 'm/44\'/60\'/0\'/0' : null
+      default: !!key.default
+    });
+
+    await dbInstance.models.ClientKeys.create({
+      clientId: req.clientId,
+      keyAddress: account.address.toLowerCase()
     });
   }
 

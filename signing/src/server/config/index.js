@@ -1,3 +1,4 @@
 module.exports = {
-  dbPath: process.env.DB_PATH || './dbPath'
+  dbPath: process.env.DB_PATH || './dbPath',
+  network: process.env.NETWORK || 'testnet'
 };

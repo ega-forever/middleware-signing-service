@@ -1,4 +1,5 @@
-const dbInstance = require('../controllers/dbController').get();
+const dbInstance = require('../controllers/dbController').get(),
+  genericMessages = require('../factories/messages/genericMessages');
 
 module.exports = async (req, res, next) => {
 
@@ -6,7 +7,7 @@ module.exports = async (req, res, next) => {
   const client = await dbInstance.models.Clients.findOne({where: {clientId: req.clientId}});
 
   if (!client)
-    return res.status(401).send({status: 0}); //todo make error
+    return res.status(401).send(genericMessages.fail); //todo make error
 
   next();
 };

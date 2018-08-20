@@ -10,13 +10,17 @@ const dbInstance = require('../../controllers/dbController').get(),
 module.exports = async (req, res) => {
 
   if (!req.body.key && !_.get(req.body, '0.key'))
-    return res.send(keyMessages.badParams); //todo add error
+    return res.send(keyMessages.badParams);
 
   if (req.body.key)
     req.body = [req.body.key];
 
   for (let key of req.body) {
     const extendedKey = extractExtendedKey(key.key);
+
+    if(!extendedKey && key.key.indexOf('0x') === -1)
+      key.key = `0x${key.key}`;
+
     const privateKey = extendedKey ? hdkey.fromExtendedKey(extendedKey).getWallet().getPrivateKey() : key.key;
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);

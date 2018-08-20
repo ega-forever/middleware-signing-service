@@ -8,5 +8,5 @@ module.exports = (key) => {
     return hdwallet.privateExtendedKey();
   }
 
-  return key.length <= 64 ? null : key;
+  return key.length <= 66 ? null : key;
 };

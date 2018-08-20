@@ -12,6 +12,10 @@ class EthPlugin extends AbstractPlugin {
   }
 
   async sign(privateKey, txParams) {
+
+    if(privateKey.length > 66)
+      privateKey = hdkey.fromExtendedKey(privateKey).getWallet().getPrivateKey().toString('hex');
+
     const privateKeyBuffer = Buffer.from(privateKey, 'hex');
     const tx = new EthereumTx(txParams);
     tx.sign(privateKeyBuffer);
@@ -21,13 +25,13 @@ class EthPlugin extends AbstractPlugin {
       s: `0x${tx.s.toString('hex')}`,
       v: `0x${tx.v.toString('hex')}`,
       rawTransaction: `0x${tx.serialize().toString('hex')}`
-    }
+    };
   }
 
   getPublicKey(privKey, deriveIndex) {
 
-    if (privKey.length <= 64) {
-      const pubkey = Wallet.fromPrivateKey(Buffer.from(privKey, 'hex')).getPublicKey();
+    if (privKey.length <= 66) {
+      const pubkey = Wallet.fromPrivateKey(Buffer.from(privKey.replace('0x', ''), 'hex')).getPublicKey();
       return pubkey.toString('hex');
     }
 

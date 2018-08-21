@@ -1,4 +1,5 @@
 let bip39 = require("bip39"),
+  bigi = require('bigi'),
   bitcoin = require('bitcoinjs-lib');
 
 const mnemonic = 'laptop stand rule match source dinosaur real amazing lobster inflict catalog clap';
@@ -6,9 +7,9 @@ const seed = bip39.mnemonicToSeed(mnemonic);
 
 const node = bitcoin.HDNode.fromSeedBuffer(seed, bitcoin.networks.testnet).derivePath("m/44'/0'/0'");
 
-let keyPair = node.derivePath("0/0").keyPair;
-let keyPair2 = node.derivePath("0/1").keyPair;
-let keyPair3 = node.derivePath("0/2").keyPair;
+let keyPair = new bitcoin.ECPair(bigi.fromBuffer(Buffer.from('d9c178f1c1d6a104891701cc61b249979b54edd36277b5014e3b08702bc216e3'.replace('0x', ''), 'hex')), null, {network: bitcoin.networks.testnet});
+let keyPair2 = new bitcoin.ECPair(bigi.fromBuffer(Buffer.from('9b9750256014f334f3edb9347f83b37a99fcf393f648ff2690008ad32f486813'.replace('0x', ''), 'hex')), null, {network: bitcoin.networks.testnet});
+let keyPair3 = new bitcoin.ECPair(bigi.fromBuffer(Buffer.from('a6623954f174f7068dff432cbb8c83a4d23e5384d42824742eb73dbd20fd9838'.replace('0x', ''), 'hex')), null, {network: bitcoin.networks.testnet});
 
 console.log(keyPair.getAddress().toString('hex'))
 
@@ -23,16 +24,17 @@ const init = async () => {
   console.log(multisigAddress)
 
   const txb = new bitcoin.TransactionBuilder(bitcoin.networks.testnet);
-  txb.addInput('5b28ed668f96155b5fb9f108d794d0ce094dd9018f487b8669ce3a6cd255745a', 1);
-  txb.addOutput('mr2fCaYi9xyeypxkEmx2NVCSR7kkb7ZLnT', 55000000 - 5000);
+  txb.addInput('8c6c415cdab1f8addaaf354fade0376cd677c816395e4783e4170f70b409f6f6', 1);
+  txb.addOutput('mr2fCaYi9xyeypxkEmx2NVCSR7kkb7ZLnT', 11000000);
+  txb.addOutput('2N8tHkwMDzPAL45W95dmDLGiFnUXoMhfBm9', 101036325);
 
-  const keyPairs = [];
+  const keyPairs = [keyPair, keyPair2];
 
-  for (let index = 0; index < 2; index++) {
+/*  for (let index = 0; index < 2; index++) {
     let keyPair = node.derivePath(`0/${index}`).keyPair;
     console.log(keyPair.getPublicKeyBuffer().toString('hex'))
     keyPairs.push(keyPair);
-  }
+  }*/
 
   for (let i = 0; i < txb.tx.ins.length; i++)
     for (let keyPair of keyPairs) {
@@ -41,9 +43,7 @@ const init = async () => {
 
   console.log(txb.build().toHex());
 
-  console.log(txb.build().txid)
-
 }
 
 
-module.exports = init().catch(err=>console.log(err));
+module.exports = init().catch(err => console.log(err));

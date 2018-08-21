@@ -3,9 +3,11 @@ const AbstractPlugin = require('./abstract/AbstractPlugin'),
   _ = require('lodash'),
   bitcoin = require('bitcoinjs-lib');
 
-class BtcPlugin extends AbstractPlugin {
+require('bitcoinjs-testnets').register(bitcoin.networks);
 
-  constructor(network) {
+class BchPlugin extends AbstractPlugin {
+
+  constructor (network) {
     super();
 
     this.networksMap = {
@@ -17,7 +19,7 @@ class BtcPlugin extends AbstractPlugin {
     this.network = this.networksMap[network];
   }
 
-  sign(signers, txParams, options = {}) {
+  sign (signers, txParams, options = {}) {
 
     if (!options.sigRequired)
       options.sigRequired = 2;
@@ -42,12 +44,16 @@ class BtcPlugin extends AbstractPlugin {
       }
 
     const restoredTxb = bitcoin.TransactionBuilder.fromTransaction(bitcoin.Transaction.fromHex(txParams.incompleteTx), this.network);
+    restoredTxb.enableBitcoinCash(true);
+    restoredTxb.setVersion(2);
+
+    const hashType = bitcoin.Transaction.SIGHASH_ALL | bitcoin.Transaction.SIGHASH_BITCOINCASHBIP143;
 
     if (!txParams.redeemScript) {
       let keyPair = keyPairs[options.index || 0];
 
       for (let i = 0; i < restoredTxb.tx.ins.length; i++)
-        restoredTxb.sign(i, keyPair);
+        restoredTxb.sign(i, keyPair, hashType, 1);
 
       return restoredTxb.build().toHex();
     }
@@ -56,12 +62,12 @@ class BtcPlugin extends AbstractPlugin {
 
     for (let i = 0; i < restoredTxb.tx.ins.length; i++)
       for (let keyPair of keyPairs)
-        restoredTxb.sign(i, keyPair, redeemScript);
+        restoredTxb.sign(i, keyPair, redeemScript, hashType, _.get(options, `inputs.${i}.value`, 0));
 
     return restoredTxb.build().toHex();
   }
 
-  getPublicKey(privKey, deriveIndex) {
+  getPublicKey (privKey, deriveIndex) {
 
     if (privKey.length <= 66) {
       const keyPair = new bitcoin.ECPair(bigi.fromBuffer(Buffer.from(privKey.replace('0x', ''), 'hex')), null, {network: this.network});
@@ -75,4 +81,4 @@ class BtcPlugin extends AbstractPlugin {
 
 }
 
-module.exports = BtcPlugin;
+module.exports = BchPlugin;

@@ -11,12 +11,14 @@ class EthPlugin extends AbstractPlugin {
     this.network = network;
   }
 
-  async sign(privateKey, txParams) {
+  async sign(signers, txParams) {
 
-    if(privateKey.length > 66)
+    let privateKey = signers[0].privateKey;
+
+    if (privateKey.length > 66)
       privateKey = hdkey.fromExtendedKey(privateKey).getWallet().getPrivateKey().toString('hex');
 
-    const privateKeyBuffer = Buffer.from(privateKey, 'hex');
+    const privateKeyBuffer = Buffer.from(privateKey.replace('0x', ''), 'hex');
     const tx = new EthereumTx(txParams);
     tx.sign(privateKeyBuffer);
     return {

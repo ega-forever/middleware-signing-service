@@ -3,21 +3,23 @@ const AbstractPlugin = require('./abstract/AbstractPlugin'),
   _ = require('lodash'),
   bitcoin = require('bitcoinjs-lib');
 
-class BtcPlugin extends AbstractPlugin {
+require('bitcoinjs-testnets').register(bitcoin.networks);
 
-  constructor(network) {
+class LtcPlugin extends AbstractPlugin {
+
+  constructor (network) {
     super();
 
     this.networksMap = {
-      main: bitcoin.networks.bitcoin,
-      testnet: bitcoin.networks.testnet,
+      main: bitcoin.networks.litecoin,
+      testnet: bitcoin.networks.litecoin_testnet,
       regtest: bitcoin.networks.regtest
     };
 
     this.network = this.networksMap[network];
   }
 
-  sign(signers, txParams, options = {}) {
+  sign (signers, txParams, options = {}) {
 
     if (!options.sigRequired)
       options.sigRequired = 2;
@@ -61,7 +63,7 @@ class BtcPlugin extends AbstractPlugin {
     return restoredTxb.build().toHex();
   }
 
-  getPublicKey(privKey, deriveIndex) {
+  getPublicKey (privKey, deriveIndex) {
 
     if (privKey.length <= 66) {
       const keyPair = new bitcoin.ECPair(bigi.fromBuffer(Buffer.from(privKey.replace('0x', ''), 'hex')), null, {network: this.network});
@@ -75,4 +77,4 @@ class BtcPlugin extends AbstractPlugin {
 
 }
 
-module.exports = BtcPlugin;
+module.exports = LtcPlugin;

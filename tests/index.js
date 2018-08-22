@@ -25,7 +25,7 @@ describe('singing service', function () {
     ctx.keyPair = bcoin.hd.generate(ctx.network);
     ctx.keyPair2 = bcoin.hd.generate(ctx.network);
 
-    ctx.nodePid = spawn('node', ['tests/utils/bcoin/node.js'], {env: process.env, stdio: 'ignore'});
+    ctx.nodePid = spawn('node', ['tests/utils/bcoin/node.js'], {env: process.env, stdio: 'inherit'});
     await Promise.delay(10000);
   });
 

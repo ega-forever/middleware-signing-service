@@ -1,8 +1,11 @@
 const express = require('express'),
+  config = require('./config'),
   routes = require('./routes'),
   models = require('./models'),
   dbController = require('./controllers/dbController'),
   bodyParser = require('body-parser'),
+  bunyan = require('bunyan'),
+  log = bunyan.createLogger({name: 'server'}),
   app = express();
 
 const init = async () => {
@@ -17,9 +20,7 @@ const init = async () => {
   await models(dbInstance);
   routes(app);
 
-  app.listen(8080, () => console.log('Listening on port 8080!'));
-
-
+  app.listen(config.rest.port, () => log.info(`Listening on port ${config.rest.port}!`));
 };
 
-module.exports = init().catch(e => console.log(e));
+module.exports = init().catch(e => log.error(e));

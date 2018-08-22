@@ -1,6 +1,6 @@
 FROM node:8
 ENV NETWORK testnet
-ENV DB_PATH db.sqlite
+ENV DB_URI db.sqlite
 
 RUN mkdir /app
 WORKDIR /app

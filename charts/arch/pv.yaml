@@ -1,0 +1,24 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.persistence.pd_name }}
+  labels:
+    app: {{ template "ui.fullname" . }}
+  annotations:
+  {{- if .Values.persistence.storageClass }}
+    volume.beta.kubernetes.io/storage-provisioner: {{ .Values.persistence.storageClass }}
+  {{- else }}
+    volume.alpha.kubernetes.io/storage-class: default
+  {{- end }}
+spec:
+  capacity:
+    storage: {{ .Values.persistence.size }}
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.persistence.storageClassName }}
+  gcePersistentDisk:
+    pdName: {{ .Values.persistence.pd_name }}
+    fsType: ext4
+{{- end }}

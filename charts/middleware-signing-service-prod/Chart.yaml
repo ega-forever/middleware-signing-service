@@ -1,0 +1,7 @@
+apiVersion: v1
+description: Helm chart for Labor-X-Moddleware
+name: middleware-eth-laborx-prod
+version: 0.0.1
+maintainers:
+- name: Chronobank dev team
+  email: dev@mail.com

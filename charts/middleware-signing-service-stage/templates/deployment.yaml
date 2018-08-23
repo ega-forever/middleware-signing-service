@@ -1,0 +1,65 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "ui.fullname" . }}
+  labels:
+    app: {{ template "ui.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "ui.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+      - name: gcr-chronobank
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.envVars}}
+            env:
+          {{- range $key, $value := .Values.envVars }}
+            - name: "{{ $key }}"
+              value: "{{ $value }}"
+          {{- end }}
+        {{- end }}
+          ports:
+            - containerPort: {{ .Values.service.internalPort }}
+          livenessProbe:
+            initialDelaySeconds: 300
+            timeoutSeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: {{ .Values.service.internalPort }}
+          readinessProbe:
+            initialDelaySeconds: 300
+            timeoutSeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: {{ .Values.service.internalPort }}
+          volumeMounts:
+            - mountPath: /db_sqlite
+              name: database
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: database
+          persistentVolumeClaim:
+            claimName: {{ template "ui.fullname" . }}-pvc
+        {{- else }}
+          emptyDir: {}
+        {{- end -}}

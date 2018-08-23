@@ -36,7 +36,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 3
             httpGet:
-              path: /
+              path: /info
               port: {{ .Values.service.internalPort }}
           readinessProbe:
             initialDelaySeconds: 300
@@ -44,7 +44,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 3
             httpGet:
-              path: /
+              path: /info
               port: {{ .Values.service.internalPort }}
           volumeMounts:
             - mountPath: /db_sqlite

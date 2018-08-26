@@ -6,20 +6,18 @@
 
 require('dotenv/config');
 
-const keyring = require('bcoin/lib/primitives/keyring'),
+const
   _ = require('lodash'),
   bip39 = require('bip39'),
   bitcoin = require('bitcoinjs-lib'),
-  bcoin = require('bcoin'),
-  Network = require('bcoin/lib/protocol/network'),
-  Client = require('../utils/bcoin/client'),
   request = require('request-promise'),
-  client = new Client('http://localhost:18332'),
   expect = require('chai').expect,
   Web3 = require('web3'),
   hdkey = require('ethereumjs-wallet/hdkey'),
   web3 = new Web3(),
   Promise = require('bluebird'),
+  btcTest = require('../features/btc'),
+  ethTest = require('../features/eth'),
   path = require('path'),
   fs = require('fs'),
   spawn = require('child_process').spawn;
@@ -35,7 +33,7 @@ module.exports = (ctx) => {
 
     }
 
-    ctx.server = spawn('node', ['src/server/index.js'], {env: {NETWORK: 'regtest', DB_PATH: dbPath}, stdio: 'ignore'});
+    ctx.server = spawn('node', ['server/index.js'], {env: {NETWORK: 'regtest', DB_URI: dbPath}, stdio: 'inherit'});
     await Promise.delay(5000);
   });
 
@@ -118,113 +116,9 @@ module.exports = (ctx) => {
     }
   });
 
-  it('generate some coins for accountB', async () => {
-    const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
-    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath("m/44'/0'/0'").derivePath('0/0').keyPair;
-    const address = new keyring(key.privateKey).getAddress('base58', ctx.network);
-    return await client.execute('generatetoaddress', [100, address])
-  });
+  //describe('btc', () => btcTest(ctx));
 
-  it('generate some coins for accountA (in order to unlock coins for accountB)', async () => {
-    const seed = bip39.mnemonicToSeed(ctx.keys[0].key);
-    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath("m/44'/0'/0'").derivePath('0/0').keyPair;
-    const address = new keyring(key.privateKey).getAddress('base58', ctx.network);
-    return await client.execute('generatetoaddress', [100, address]);
-  });
-
-  it('create transaction for btc', async () => {
-
-    const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
-    const seed2 = bip39.mnemonicToSeed(ctx.keys[0].key);
-    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath("m/44'/0'/0'").derivePath('0/0').keyPair;
-    const key2 = bitcoin.HDNode.fromSeedBuffer(seed2).derivePath("m/44'/0'/0'").derivePath('0/0').keyPair;
-    const addressRegtest = new keyring(key.privateKey).getAddress('base58', Network.get('regtest'));
-    const addressRegtest2 = new keyring(key2.privateKey).getAddress('base58', Network.get('regtest'));
-    const addressTestnet = new keyring(key.privateKey).getAddress('base58', Network.get('testnet'));
-
-    let coins = await client.execute('getcoinsbyaddress', [addressRegtest]);
-
-    coins = _.sortBy(coins, 'height');
-
-    const keys = await request({
-      uri: 'http://localhost:8080/keys',
-      method: 'GET',
-      json: true,
-      headers: {
-        client_id: ctx.client.clientId
-      }
-    });
-
-    const txb = new bitcoin.TransactionBuilder(bitcoin.networks.testnet);
-    txb.addInput(coins[0].hash, coins[0].index);
-    txb.addOutput(addressTestnet, coins[0].value - 5000);
-    const incompleteTx = txb.buildIncomplete().toHex();
-
-    const reply = await request({
-      uri: 'http://localhost:8080/tx/btc',
-      method: 'POST',
-      json: {
-        signers: [keys[1].address],
-        payload: {
-          incompleteTx: incompleteTx
-        }
-      },
-      headers: {
-        client_id: ctx.client.clientId
-      }
-    });
-
-
-    const sendTxResult = await client.execute('sendrawtransaction', [reply.rawTx]);
-    await client.execute('generatetoaddress', [1, addressRegtest2]);
-    const pushedTx = await client.execute('getrawtransaction', [sendTxResult, false]);
-    console.log(pushedTx)
-  });
-
-
-
-
-/*
-  it('create multisig transaction for btc', async () => {
-
-    let key = new keyring(ctx.keyPair);
-
-
-    let coins = await client.execute('getcoinsbyaddress', [multisigAddress]);
-
-    console.log(coins);
-
-
-
-    const keys = await request({
-      uri: 'http://localhost:8080/keys',
-      method: 'GET',
-      json: true,
-      headers: {
-        client_id: ctx.client.clientId
-      }
-    });
-
-    const pubKeys = _.chain(keys)
-      .find(key => key.pubKeys.length > 2)
-      .get('pubKeys')
-      .map(pubKey => Buffer.from(pubKey.btc, 'hex'))
-      .value();
-
-
-    const redeemScript = bitcoin.script.multisig.output.encode(2, pubKeys); // 2 of 3
-    const scriptPubKey = bitcoin.script.scriptHash.output.encode(bitcoin.crypto.hash160(redeemScript));
-    const multisigAddress = bitcoin.address.fromOutputScript(scriptPubKey, bitcoin.networks.regtest);
-    console.log(multisigAddress)
-
-    await client.execute('generatetoaddress', [10, multisigAddress]);
-
-
-
-
-  });
-*/
-
+  describe('eth', () => ethTest(ctx));
 
   after('kill environment', async () => {
     ctx.server.kill();

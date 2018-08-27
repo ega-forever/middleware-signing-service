@@ -5,6 +5,7 @@ const dbInstance = require('../../controllers/dbController').get(),
   keyMessages = require('../../factories/messages/keysMessages'),
   hdkey = require('ethereumjs-wallet/hdkey'),
   extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
+  checkPrivateKey = require('../../utils/crypto/checkPrivateKey'),
   web3 = new Web3();
 
 module.exports = async (req, res) => {
@@ -15,7 +16,13 @@ module.exports = async (req, res) => {
   if (req.body.key)
     req.body = [req.body.key];
 
+  let allKeysValid = _.chain(req.body).map(key=> checkPrivateKey(key.key)).filter(eq=>!eq).size().eq(0).value();
+
+  if(!allKeysValid)
+    return res.send(keyMessages.badParams);
+
   for (let key of req.body) {
+
     const extendedKey = extractExtendedKey(key.key);
 
     if(!extendedKey && key.key.indexOf('0x') === -1)

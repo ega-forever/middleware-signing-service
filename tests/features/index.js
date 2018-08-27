@@ -30,10 +30,9 @@ module.exports = (ctx) => {
     try {
       fs.unlinkSync(dbPath);
     } catch (e) {
-
     }
 
-    ctx.server = spawn('node', ['server/index.js'], {env: {NETWORK: 'regtest', DB_URI: dbPath}, stdio: 'inherit'});
+    ctx.server = spawn('node', ['server/index.js'], {env: {NETWORK: 'regtest', DB_URI: dbPath}, stdio: 'ignore'});
     await Promise.delay(5000);
   });
 
@@ -116,7 +115,7 @@ module.exports = (ctx) => {
     }
   });
 
-  //describe('btc', () => btcTest(ctx));
+  describe('btc', () => btcTest(ctx));
 
   describe('eth', () => ethTest(ctx));
 

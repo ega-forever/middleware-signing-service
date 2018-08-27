@@ -7,14 +7,10 @@
 require('dotenv/config');
 process.env.LOG_LEVEL = 'error';
 
-const bcoin = require('bcoin'),
-  spawn = require('child_process').spawn,
-  //fuzzTests = require('./fuzz'),
+const fuzzTests = require('./fuzz'),
   //performanceTests = require('./performance'),
   featuresTests = require('./features'),
-  Network = require('bcoin/lib/protocol/network'),
   //blockTests = require('./blocks'),
-  Promise = require('bluebird'),
   ctx = {};
 
 
@@ -25,7 +21,7 @@ describe('signing service', function () {
 
   //describe('performance', () => performanceTests(ctx));
 
-  //describe('fuzz', () => fuzzTests(ctx));
+  describe('fuzz', () => fuzzTests(ctx));
 
   describe('features', () => featuresTests(ctx));
 

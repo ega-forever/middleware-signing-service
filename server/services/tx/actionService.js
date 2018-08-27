@@ -9,6 +9,13 @@ module.exports = async (req, res) => {
   if (!plugins[req.params.blockchain] || !req.body.payload)
     return res.send(signMessages.wrongPayload);
 
+  const plugin = new plugins[req.params.blockchain](config.network);
+  let actionName = _.chain(plugin.actions).keys().find(key=> key.toLowerCase() === req.params.action.toLowerCase()).value();
+
+  if(!actionName)
+    return res.send(signMessages.wrongAction);
+
+
   let keys = req.body.signers ? await dbInstance.models.Keys.findAll({
       where: {
         address: {
@@ -21,7 +28,6 @@ module.exports = async (req, res) => {
   if (!_.compact(keys).length)
     return res.send(signMessages.wrongKey);
 
-  const plugin = new plugins[req.params.blockchain](config.network);
   keys = keys.map(key => key.toJSON());
 
   if (req.body.signers)
@@ -30,7 +36,7 @@ module.exports = async (req, res) => {
       .compact()
       .value();
 
-  let tx = await plugin.sign(keys, req.body.payload, req.body.options);
+  const data = await plugin[actionName](keys, req.body.payload, req.body.options);
 
-  return res.send({rawTx: tx});
+  return res.send(data);
 };

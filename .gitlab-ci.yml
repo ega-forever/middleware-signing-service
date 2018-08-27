@@ -55,7 +55,7 @@ Tests:
 
   script:
     #- npm run lint
-    ##- npm test -- --coverage
+    - npm test -- --coverage
     exit 0
 
   artifacts:

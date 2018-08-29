@@ -31,20 +31,20 @@ spec:
           ports:
             - containerPort: {{ .Values.service.internalPort }}
           livenessProbe:
-            initialDelaySeconds: 600
-            timeoutSeconds: 60
+            initialDelaySeconds: 300
+            timeoutSeconds: 30
             periodSeconds: 10
             failureThreshold: 3
             httpGet:
-              path: /
+              path: /info
               port: {{ .Values.service.internalPort }}
           readinessProbe:
-            initialDelaySeconds: 600
-            timeoutSeconds: 60
+            initialDelaySeconds: 300
+            timeoutSeconds: 30
             periodSeconds: 10
             failureThreshold: 3
             httpGet:
-              path: /
+              path: /info
               port: {{ .Values.service.internalPort }}
           volumeMounts:
             - mountPath: /mnt/services

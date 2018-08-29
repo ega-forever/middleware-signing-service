@@ -3,10 +3,9 @@ const dbInstance = require('../controllers/dbController').get(),
 
 module.exports = async (req, res, next) => {
 
-  req.clientId = req.get('client_id');
-  const client = await dbInstance.models.Clients.findOne({where: {clientId: req.clientId}});
+  req.client = await dbInstance.models.Clients.findOne({where: {clientId: req.get('client_id')}});
 
-  if (!client)
+  if (!req.client)
     return res.status(401).send(genericMessages.fail); //todo make error
 
   next();

@@ -30,7 +30,8 @@ module.exports = (ctx) => {
 
     }
 
-    ctx.nodePid = spawn('node', ['tests/utils/eth/ipcConverter.js'], {env: process.env, stdio: 'inherit'});
+    const ethPath = path.join(__dirname, '../../tests/utils/eth/ipcConverter.js');
+    ctx.nodePid = spawn('node', [ethPath], {env: process.env, stdio: 'inherit'});
     ctx.web3 = new Web3('http://localhost:8545');
     await Promise.delay(5000);
   });

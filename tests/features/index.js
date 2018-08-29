@@ -32,7 +32,8 @@ module.exports = (ctx) => {
     } catch (e) {
     }
 
-    ctx.server = spawn('node', ['server/index.js'], {env: {NETWORK: 'regtest', DB_URI: dbPath}, stdio: 'ignore'});
+    const serverPath = path.join(__dirname, '../../server/index.js');
+    ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: 'regtest', DB_URI: dbPath}), stdio: 'ignore'});
     await Promise.delay(5000);
   });
 

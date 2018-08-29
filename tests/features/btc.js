@@ -19,13 +19,15 @@ const keyring = require('bcoin/lib/primitives/keyring'),
   Web3 = require('web3'),
   hdkey = require('ethereumjs-wallet/hdkey'),
   web3 = new Web3(),
+  path = require('path'),
   Promise = require('bluebird'),
   spawn = require('child_process').spawn;
 
 module.exports = (ctx) => {
 
   before(async () => {
-    ctx.nodePid = spawn('node', ['tests/utils/bcoin/node.js'], {env: process.env, stdio: 'ignore'});
+    const bcoinPath = path.join(__dirname, '../../tests/utils/bcoin/node.js');
+    ctx.nodePid = spawn('node', [bcoinPath], {env: process.env, stdio: 'ignore'});
     await Promise.delay(5000);
   });
 

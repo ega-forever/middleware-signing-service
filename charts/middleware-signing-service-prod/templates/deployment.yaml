@@ -47,8 +47,8 @@ spec:
               path: /info
               port: {{ .Values.service.internalPort }}
           volumeMounts:
-            - mountPath: /app/db.sqlite
-              name: files
+            - mountPath: /app/sqlite
+              name: database
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- if .Values.nodeSelector }}
@@ -57,7 +57,7 @@ spec:
     {{- end }}
     {{- if .Values.persistence.enabled }}
       volumes:
-        - name: files
+        - name: database
           persistentVolumeClaim:
             claimName: {{ template "ui.fullname" . }}-pvc
         {{- else }}

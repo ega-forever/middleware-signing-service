@@ -1,8 +1,8 @@
 FROM node:8
 ENV NETWORK testnet
-ENV DB_URI /db_sqlite
+ENV DB_URI /app/db.sqlite
 
-RUN mkdir /app
+RUN mkdir /app /app/db.sqlite
 WORKDIR /app
 COPY . .
 RUN npm install

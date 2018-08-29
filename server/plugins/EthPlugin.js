@@ -4,6 +4,7 @@ const EthereumTx = require('ethereumjs-tx'),
   Promise = require('bluebird'),
   Web3 = require('web3'),
   web3 = new Web3(),
+  _ = require('lodash'),
   crypto = require('crypto'),
   hdkey = require('ethereumjs-wallet/hdkey');
 
@@ -45,8 +46,16 @@ class EthPlugin extends AbstractPlugin {
     }
 
     const hdwallet = hdkey.fromExtendedKey(privKey);
-    const pubKey = hdwallet.derivePath(`m/44'/60'/0'/0/${deriveIndex}`).getWallet().getPublicKey();
 
+
+    if (_.isArray(deriveIndex))
+      return deriveIndex.map(index => {
+        let pubKey = hdwallet.derivePath(`m/44'/60'/0'/0/${index}`).getWallet().getPublicKey();
+        return pubKey.toString('hex');
+      });
+
+
+    const pubKey = hdwallet.derivePath(`m/44'/60'/0'/0/${deriveIndex}`).getWallet().getPublicKey();
     return pubKey.toString('hex');
   }
 

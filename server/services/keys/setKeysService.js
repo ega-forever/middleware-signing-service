@@ -31,15 +31,23 @@ module.exports = async (req, res) => {
     const privateKey = extendedKey ? hdkey.fromExtendedKey(extendedKey).getWallet().getPrivateKey() : key.key;
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
-    await dbInstance.models.Keys.create({
-      clientId: req.clientId,
+
+    let permission = await dbInstance.models.Permissions.create({
+      owner: true,
+      deriveIndex: 0
+    });
+
+    await permission.setClient(req.client);
+
+    let keyRecord = await dbInstance.models.Keys.create({
       pubKeysCount: key.pubKeys || 1,
       isStageChild: !!key.stageChild,
       privateKey: extendedKey || key.key,
       address: account.address.toLowerCase(),
-      default: !!key.default,
-      derivePath: extendedKey ? 'm/44\'/60\'/0\'/0' : null
+      default: !!key.default
     });
+
+    await permission.setKey(keyRecord);
   }
 
 

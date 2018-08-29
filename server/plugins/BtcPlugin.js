@@ -5,7 +5,7 @@ const AbstractPlugin = require('./abstract/AbstractPlugin'),
 
 class BtcPlugin extends AbstractPlugin {
 
-  constructor(network) {
+  constructor (network) {
     super();
 
     this.networksMap = {
@@ -18,7 +18,7 @@ class BtcPlugin extends AbstractPlugin {
   }
 
 
-  _getRequredKeyPairs(signers, useKeys, required = 2) {
+  _getRequredKeyPairs (signers, useKeys, required = 2) {
 
     let keyPairs = [];
 
@@ -48,7 +48,7 @@ class BtcPlugin extends AbstractPlugin {
 
   }
 
-  sign(signers, txParams, options = {}) {
+  sign (signers, txParams, options = {}) {
 
     if (!options.sigRequired)
       options.sigRequired = 2;
@@ -75,7 +75,7 @@ class BtcPlugin extends AbstractPlugin {
     return restoredTxb.build().toHex();
   }
 
-  getPublicKey(privKey, deriveIndex) {
+  getPublicKey (privKey, deriveIndex) {
 
     if (privKey.length <= 66) {
       const keyPair = new bitcoin.ECPair(bigi.fromBuffer(Buffer.from(privKey.replace('0x', ''), 'hex')), null, {network: this.network});
@@ -83,6 +83,13 @@ class BtcPlugin extends AbstractPlugin {
     }
 
     let node = bitcoin.HDNode.fromBase58(privKey).derivePath('m/44\'/0\'/0\'');
+
+    if (_.isArray(deriveIndex))
+      return deriveIndex.map(index => {
+        let keyPair = node.derivePath(`0/${index}`).keyPair;
+        return keyPair.getPublicKeyBuffer().toString('hex');
+      });
+
     let keyPair = node.derivePath(`0/${deriveIndex}`).keyPair;
     return keyPair.getPublicKeyBuffer().toString('hex');
   }

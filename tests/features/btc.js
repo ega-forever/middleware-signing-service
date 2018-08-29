@@ -146,6 +146,7 @@ module.exports = (ctx) => {
       }
     });
 
+
     const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, keys[1].pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
 
     const redeemScript = bitcoin.script.multisig.output.encode(2, pubKeys); // 2 of 3

@@ -45,8 +45,6 @@ let addresses = _.chain(RPCServer.provider.manager.state.accounts)
   .fromPairs()
   .value();
 
-console.log(addresses);
-
 // create RPC server
 const server = net.createServer(stream => {
   stream.on('data', async c => {
@@ -123,6 +121,4 @@ process.on('SIGINT', function () {
 });
 
 //Going to start server 
-server.listen(web3ProviderUri, () => {
-  log.info(`Server: on listening for network`);
-});
+server.listen(web3ProviderUri);

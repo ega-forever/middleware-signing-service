@@ -9,14 +9,16 @@ module.exports = async (req, res) => {
   if (!plugins[req.params.blockchain] || !req.body.payload)
     return res.send(signMessages.wrongPayload);
 
+  let permissions = await req.client.getPermissions();
+
   let keys = req.body.signers ? await dbInstance.models.Keys.findAll({
       where: {
         address: {
-          $in: req.body.signers.map(signers => signers.toLowerCase())
+          $in: _.intersection(permissions.map(permission => permission.KeyAddress.toLowerCase()), req.body.signers.map(signers => signers.toLowerCase()))
         }
       }
     }) :
-    [await dbInstance.models.Keys.findOne({where: {clientId: req.clientId, default: true}})];
+    [await dbInstance.models.Keys.findOne({where: {clientId: req.client.clientId, default: true}})];
 
   if (!_.compact(keys).length)
     return res.send(signMessages.wrongKey);

@@ -3,9 +3,6 @@ const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 
   return sequelize.define('Keys', {
-    clientId: {
-      type: Sequelize.STRING
-    },
     address: {
       type: Sequelize.STRING,
       primaryKey: true
@@ -29,10 +26,7 @@ module.exports = (sequelize) => {
       type: Sequelize.BOOLEAN,
       allowNull: false,
       defaultValue: false
-    },
-    derivePath: {
-      type: Sequelize.STRING
-    },
+    }
   });
 
 };

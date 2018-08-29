@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
     req.body = [req.body];
 
 
-  const keys = await dbInstance.models.Keys.findOne({
+  const keys = await dbInstance.models.Keys.findAll({
     where: {
       address: req.body.map(operation => operation.address)
     }
@@ -21,7 +21,8 @@ module.exports = async (req, res) => {
 
   const badRule = _.find(req.body, operation => {
     let key = _.find(keys, {address: operation.address});
-    return !key || (!extractExtendedKey(key.key) && (!!operation.stageChild || operation.incrementChild > 0));
+
+    return !key || (!extractExtendedKey(key.privateKey) && (!!operation.stageChild || operation.incrementChild > 0));
   });
 
   if(badRule)

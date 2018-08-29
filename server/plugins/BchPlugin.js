@@ -75,6 +75,13 @@ class BchPlugin extends AbstractPlugin {
     }
 
     let node = bitcoin.HDNode.fromBase58(privKey).derivePath('m/44\'/0\'/0\'');
+
+    if (_.isArray(deriveIndex))
+      return deriveIndex.map(index => {
+        let keyPair = node.derivePath(`0/${index}`).keyPair;
+        return keyPair.getPublicKeyBuffer().toString('hex');
+      });
+
     let keyPair = node.derivePath(`0/${deriveIndex}`).keyPair;
     return keyPair.getPublicKeyBuffer().toString('hex');
   }

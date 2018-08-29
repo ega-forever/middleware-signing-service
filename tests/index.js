@@ -8,7 +8,7 @@ require('dotenv/config');
 process.env.LOG_LEVEL = 'error';
 
 const fuzzTests = require('./fuzz'),
-  //performanceTests = require('./performance'),
+  performanceTests = require('./performance'),
   featuresTests = require('./features'),
   //blockTests = require('./blocks'),
   ctx = {};
@@ -21,7 +21,7 @@ describe('signing service', function () {
 
   //describe('performance', () => performanceTests(ctx));
 
-  describe('fuzz', () => fuzzTests(ctx));
+  //describe('fuzz', () => fuzzTests(ctx));
 
   describe('features', () => featuresTests(ctx));
 

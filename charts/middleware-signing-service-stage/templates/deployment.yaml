@@ -47,7 +47,7 @@ spec:
               path: /info
               port: {{ .Values.service.internalPort }}
           volumeMounts:
-            - mountPath: /db_sqlite
+            - mountPath: /app/db.sqlite
               name: database
           resources:
 {{ toYaml .Values.resources | indent 12 }}

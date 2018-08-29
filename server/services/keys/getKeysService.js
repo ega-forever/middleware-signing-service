@@ -5,26 +5,44 @@ const dbInstance = require('../../controllers/dbController').get(),
 
 module.exports = async (req, res) => {
 
-  let keys = await dbInstance.models.Keys.findAll({where: {clientId: req.clientId}});
+  let permissions = await req.client.getPermissions();
 
-  keys = keys.map(key => {
-    const pubKeys = [];
+  let keys = await dbInstance.models.Keys.findAll({
+    where: {
+      address: {
+        $in: permissions.map(permission => permission.KeyAddress)
+      }
+    }
+  });
 
-    for (let index = key.isStageChild ? key.pubKeysCount - 1 : 0; index < key.pubKeysCount; index++) {
+  keys = _.chain(permissions).groupBy('KeyAddress').toPairs().map(pair => {
+
+    const address = pair[0];
+    const permissions = pair[1];
+    const isOwner = !!_.find(permissions, {owner: true});
+
+    let key = _.find(keys, {address: address});
+    key = key.toJSON();
+    key.allowedPubKeys = isOwner ? (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)) :
+      (key.isStageChild ? [key.pubKeysCount - 1] : permissions.map(permission => permission.deriveIndex));
+
+
+    const pubKeys = key.allowedPubKeys.map(deriveIndex => {
       const pubKey = _.chain(plugins).toPairs().transform((result, pair) => {
-        result[pair[0]] = new pair[1](config.network).getPublicKey(key.privateKey, index);
+        result[pair[0]] = new pair[1](config.network).getPublicKey(key.privateKey, deriveIndex);
       }, {}).value();
 
-      pubKey.index = index;
-      pubKeys.push(pubKey);
-    }
+      pubKey.index = deriveIndex;
+      return pubKey;
+    });
 
     return {
       address: key.address,
       pubKeys: pubKeys,
       default: key.default
     };
-  });
+
+  }).value();
 
   return res.send(keys);
 };

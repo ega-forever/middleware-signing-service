@@ -5,6 +5,7 @@ const dbInstance = require('../../controllers/dbController').get(),
   keyMessages = require('../../factories/messages/keysMessages'),
   hdkey = require('ethereumjs-wallet/hdkey'),
   extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
+  checkPrivateKey = require('../../utils/crypto/checkPrivateKey'),
   web3 = new Web3();
 
 module.exports = async (req, res) => {
@@ -15,7 +16,13 @@ module.exports = async (req, res) => {
   if (req.body.key)
     req.body = [req.body.key];
 
+  let allKeysValid = _.chain(req.body).map(key=> checkPrivateKey(key.key)).filter(eq=>!eq).size().eq(0).value();
+
+  if(!allKeysValid)
+    return res.send(keyMessages.badParams);
+
   for (let key of req.body) {
+
     const extendedKey = extractExtendedKey(key.key);
 
     if(!extendedKey && key.key.indexOf('0x') === -1)
@@ -24,15 +31,23 @@ module.exports = async (req, res) => {
     const privateKey = extendedKey ? hdkey.fromExtendedKey(extendedKey).getWallet().getPrivateKey() : key.key;
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
-    await dbInstance.models.Keys.create({
-      clientId: req.clientId,
+
+    let permission = await dbInstance.models.Permissions.create({
+      owner: true,
+      deriveIndex: 0
+    });
+
+    await permission.setClient(req.client);
+
+    let keyRecord = await dbInstance.models.Keys.create({
       pubKeysCount: key.pubKeys || 1,
       isStageChild: !!key.stageChild,
       privateKey: extendedKey || key.key,
       address: account.address.toLowerCase(),
-      default: !!key.default,
-      derivePath: extendedKey ? 'm/44\'/60\'/0\'/0' : null
+      default: !!key.default
     });
+
+    await permission.setKey(keyRecord);
   }
 
 

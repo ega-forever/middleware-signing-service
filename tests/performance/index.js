@@ -6,8 +6,7 @@
 
 require('dotenv/config');
 
-const
-  _ = require('lodash'),
+const _ = require('lodash'),
   bip39 = require('bip39'),
   bitcoin = require('bitcoinjs-lib'),
   request = require('request-promise'),
@@ -16,8 +15,6 @@ const
   hdkey = require('ethereumjs-wallet/hdkey'),
   web3 = new Web3(),
   Promise = require('bluebird'),
-  btcTest = require('../features/btc'),
-  ethTest = require('../features/eth'),
   path = require('path'),
   fs = require('fs'),
   spawn = require('child_process').spawn;
@@ -32,8 +29,7 @@ module.exports = (ctx) => {
     } catch (e) {
     }
 
-    const serverPath = path.join(__dirname, '../../server/index.js');
-    ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: 'regtest', DB_URI: dbPath}), stdio: 'ignore'});
+    ctx.server = spawn('node', ['server/index.js'], {env: {NETWORK: 'regtest', DB_URI: dbPath}, stdio: 'ignore'});
     await Promise.delay(5000);
   });
 
@@ -53,20 +49,21 @@ module.exports = (ctx) => {
     expect(reply.status).to.eq(1);
   });
 
-  it('generate random mnemonics and save them', async () => {
+  it('generate 50 random mnemonics and save them', async () => {
 
     ctx.keys = [];
 
-    for (let index = 0; index < 3; index++) {
+    for (let index = 0; index < 50; index++) {
       const item = {key: bip39.generateMnemonic()};
 
       if (index === 0)
         item.default = true;
 
-      item.pubKeys = _.random(1 + index, 20);
+      item.pubKeys = _.random(1 + index, 3);
       ctx.keys.push(item);
     }
 
+    const start = Date.now();
 
     const reply = await request({
       uri: 'http://localhost:8080/keys',
@@ -78,9 +75,12 @@ module.exports = (ctx) => {
     });
 
     expect(reply.status).to.eq(1);
+    expect(Date.now() - start).to.be.lt(1000);
   });
 
   it('validate get keys route', async () => {
+
+    const start = Date.now();
 
     const keys = await request({
       uri: 'http://localhost:8080/keys',
@@ -91,9 +91,10 @@ module.exports = (ctx) => {
       }
     });
 
+    console.log((Date.now() - start) / 1000)
     expect(keys.length).to.eq(ctx.keys.length);
 
-    for (let item of ctx.keys) {
+/*    for (let item of ctx.keys) {
 
       const seed = bip39.mnemonicToSeed(item.key);
       let hdwallet = hdkey.fromMasterSeed(seed);
@@ -113,12 +114,9 @@ module.exports = (ctx) => {
       }
 
       expect(key).to.not.eq(null);
-    }
+    }*/
   });
 
-  describe('btc', () => btcTest(ctx));
-
-  describe('eth', () => ethTest(ctx));
 
   after('kill environment', async () => {
     ctx.server.kill();

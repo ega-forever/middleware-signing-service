@@ -16,7 +16,14 @@ class LtcPlugin extends AbstractPlugin {
       regtest: bitcoin.networks.regtest
     };
 
+    this.derivePurposeMap = {
+      main: 9,
+      testnet: 8,
+      regtest: 0
+    };
+
     this.network = this.networksMap[network];
+    this.derivePurpose = this.derivePurposeMap[network];
   }
 
   sign (signers, txParams, options = {}) {
@@ -70,7 +77,7 @@ class LtcPlugin extends AbstractPlugin {
       return keyPair.getPublicKeyBuffer().toString('hex');
     }
 
-    let node = bitcoin.HDNode.fromBase58(privKey).derivePath('m/44\'/0\'/0\'');
+    let node = bitcoin.HDNode.fromBase58(privKey).derivePath(`m/44'/${this.derivePurpose}'/0'`);
 
     if (_.isArray(deriveIndex))
       return deriveIndex.map(index => {

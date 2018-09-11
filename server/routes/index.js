@@ -1,7 +1,7 @@
 const express = require('express'),
   bunyan = require('bunyan'),
-  log = bunyan.createLogger({name: 'server.routes'}),
   messages = require('../factories/messages/genericMessages'),
+  log = bunyan.createLogger({name: 'server.routes'}),
   routes = require('require-all')({
     dirname: __dirname,
     filter: /(.+Route)\.js$/,
@@ -12,7 +12,7 @@ const express = require('express'),
 const asyncMiddlewareWrapper = fn =>
   (req, res, next) => {
     Promise.resolve(fn(req, res, next))
-      .catch(err => {
+      .catch((err)=>{
         log.error(err);
         res.send(messages.fail);
       });

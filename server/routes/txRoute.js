@@ -8,5 +8,4 @@ module.exports = (router, wrapper)=>{
 
   router.post('/:blockchain/:action', clientValidationMiddleware, wrapper(actionService));
 
-
 };

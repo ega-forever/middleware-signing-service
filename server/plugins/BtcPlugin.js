@@ -11,41 +11,17 @@ class BtcPlugin extends AbstractPlugin {
     this.networksMap = {
       main: bitcoin.networks.bitcoin,
       testnet: bitcoin.networks.testnet,
-      regtest: bitcoin.networks.testnet
+      regtest: bitcoin.networks.regtest
+    };
+
+    this.derivePurposeMap = {
+      main: 0,
+      testnet: 1,
+      regtest: 0
     };
 
     this.network = this.networksMap[network];
-  }
-
-
-  _getRequredKeyPairs (signers, useKeys, required = 2) {
-
-    let keyPairs = [];
-
-    for (let signer of signers) {
-
-      if (keyPairs.length === required)
-        return keyPairs;
-
-      if (signer.privateKey.length <= 66) {
-        keyPairs.push(new bitcoin.ECPair(bigi.fromBuffer(Buffer.from(signer.privateKey.replace('0x', ''), 'hex')), null, {network: this.network}));
-      } else {
-        let node = bitcoin.HDNode.fromBase58(signer.privateKey).derivePath('m/44\'/0\'/0\'');
-
-        for (let index = 0; index < signer.pubKeysCount; index++) {
-
-          if (_.get(useKeys, signer.address, [index]).indexOf(index) === -1)
-            continue;
-
-          let keyPair = node.derivePath(`0/${index}`).keyPair;
-          keyPair.network = this.network;
-          keyPairs.push(keyPair);
-        }
-      }
-    }
-
-    return keyPairs;
-
+    this.derivePurpose = this.derivePurposeMap[network];
   }
 
   sign (signers, txParams, options = {}) {
@@ -53,7 +29,24 @@ class BtcPlugin extends AbstractPlugin {
     if (!options.sigRequired)
       options.sigRequired = 2;
 
-    let keyPairs = this._getRequredKeyPairs(signers, options.useKeys, options.sigRequired);
+    let keyPairs = [];
+
+    for (let signer of _.take(signers, options.sigRequired))
+      if (signer.privateKey.length <= 66) {
+        keyPairs.push(new bitcoin.ECPair(bigi.fromBuffer(Buffer.from(signer.privateKey.replace('0x', ''), 'hex')), null, {network: this.network}));
+      } else {
+        let node = bitcoin.HDNode.fromBase58(signer.privateKey).derivePath('m/44\'/0\'/0\'');
+
+        for (let index = 0; index < signer.pubKeysCount; index++) {
+
+          if (_.get(options, `useKeys.${signer.address}`, [index]).indexOf(index) === -1)
+            continue;
+
+          let keyPair = node.derivePath(`0/${index}`).keyPair;
+          keyPair.network = this.network;
+          keyPairs.push(keyPair);
+        }
+      }
 
     const restoredTxb = bitcoin.TransactionBuilder.fromTransaction(bitcoin.Transaction.fromHex(txParams.incompleteTx), this.network);
 
@@ -82,14 +75,7 @@ class BtcPlugin extends AbstractPlugin {
       return keyPair.getPublicKeyBuffer().toString('hex');
     }
 
-    let node = bitcoin.HDNode.fromBase58(privKey).derivePath('m/44\'/0\'/0\'');
-
-    if (_.isArray(deriveIndex))
-      return deriveIndex.map(index => {
-        let keyPair = node.derivePath(`0/${index}`).keyPair;
-        return keyPair.getPublicKeyBuffer().toString('hex');
-      });
-
+    let node = bitcoin.HDNode.fromBase58(privKey).derivePath(`m/44'/${this.derivePurpose}'/0'`);
     let keyPair = node.derivePath(`0/${deriveIndex}`).keyPair;
     return keyPair.getPublicKeyBuffer().toString('hex');
   }

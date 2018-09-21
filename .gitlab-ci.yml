@@ -72,7 +72,7 @@ Release_Develop:
 
   script:
     - docker login -u _json_key -p "$(cat /gcr-secret/key.json)" https://gcr.io
-    - docker build -t ${CONTAINER_IMAGE_STAGE} .
+    - docker build --no-cache -t ${CONTAINER_IMAGE_STAGE} .
     - docker tag ${CONTAINER_IMAGE_STAGE} ${CONTAINER_IMAGE_STAGE_LATEST}
     - docker push ${CONTAINER_IMAGE_STAGE}
     - docker push ${CONTAINER_IMAGE_STAGE_LATEST}
@@ -90,7 +90,7 @@ Release_Master:
 
   script:
     - docker login -u _json_key -p "$(cat /gcr-secret/key.json)" https://gcr.io
-    - docker build -t ${CONTAINER_IMAGE_PROD} .
+    - docker build --no-cache -t ${CONTAINER_IMAGE_PROD} .
     - docker tag ${CONTAINER_IMAGE_PROD} ${CONTAINER_IMAGE_PROD_LATEST}
     - docker push ${CONTAINER_IMAGE_PROD}
     - docker push ${CONTAINER_IMAGE_PROD_LATEST}

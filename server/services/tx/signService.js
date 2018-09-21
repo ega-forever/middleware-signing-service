@@ -6,7 +6,7 @@ const plugins = require('../../plugins'),
 
 module.exports = async (req, res) => {
 
-  if (!plugins[req.params.blockchain] || !req.body.payload)
+  if (!plugins.plugins[req.params.blockchain] || !req.body.payload)
     return res.send(signMessages.wrongPayload);
 
   let permissions = await req.client.getPermissions();
@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
   if (!_.compact(keys).length)
     return res.send(signMessages.wrongKey);
 
-  const plugin = new plugins[req.params.blockchain](config.network);
+  const plugin = new plugins.plugins[req.params.blockchain](config.network);
   keys = keys.map(key => key.toJSON());
 
   if (req.body.signers)

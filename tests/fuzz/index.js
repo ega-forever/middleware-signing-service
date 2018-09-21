@@ -246,7 +246,7 @@ module.exports = (ctx) => {
       }
     });
 
-    expect(deleteKeyResult.status).to.eq(1);
+    expect(deleteKeyResult.status).to.eq(200);
 
     const newKeys = await request({
       uri: 'http://localhost:8080/keys',
@@ -260,8 +260,6 @@ module.exports = (ctx) => {
     expect(_.isEqual(keys, newKeys)).to.eq(true);
 
   });
-
-
 
 
   after('kill environment', async () => {

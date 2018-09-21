@@ -11,8 +11,10 @@ module.exports = async (sequilize) => {
 
   sequilize.models.Clients.hasMany(sequilize.models.Permissions, {onDelete: 'CASCADE'});
   sequilize.models.Keys.hasMany(sequilize.models.Permissions, {onDelete: 'CASCADE'});
+  sequilize.models.Keys.hasMany(sequilize.models.PubKeys, {onDelete: 'CASCADE'});
   sequilize.models.Permissions.belongsTo(sequilize.models.Clients);
   sequilize.models.Permissions.belongsTo(sequilize.models.Keys);
+  sequilize.models.PubKeys.belongsTo(sequilize.models.Keys);
 
   await sequilize.sync();
 

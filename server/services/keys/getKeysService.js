@@ -1,6 +1,4 @@
 const dbInstance = require('../../controllers/dbController').get(),
-  plugins = require('../../plugins'),
-  config = require('../../config'),
   _ = require('lodash');
 
 module.exports = async (req, res) => {
@@ -12,7 +10,10 @@ module.exports = async (req, res) => {
       address: {
         $in: permissions.map(permission => permission.KeyAddress)
       }
-    }
+    },
+    include: [{
+      model: dbInstance.models.PubKeys
+    }]
   });
 
   keys = _.chain(permissions).groupBy('KeyAddress').toPairs().map(pair => {
@@ -23,18 +24,22 @@ module.exports = async (req, res) => {
 
     let key = _.find(keys, {address: address});
     key = key.toJSON();
-    key.allowedPubKeys = isOwner ? (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)) :
+
+    const indexes = isOwner ? (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)) :
       (key.isStageChild ? [key.pubKeysCount - 1] : permissions.map(permission => permission.deriveIndex));
 
 
-    const pubKeys = key.allowedPubKeys.map(deriveIndex => {
-      const pubKey = _.chain(plugins).toPairs().transform((result, pair) => {
-        result[pair[0]] = new pair[1](config.network).getPublicKey(key.privateKey, deriveIndex);
-      }, {}).value();
+    const pubKeys = _.chain(key.PubKeys)
+      .filter(key => indexes.includes(key.index))
+      .groupBy('index')
+      .toPairs()
+      .map(pair =>
+        _.transform(pair[1], (result, item) => {
+          result[item.blockchain] = item.pubKey;
+        }, {index: parseInt(pair[0])})
+      )
+      .value();
 
-      pubKey.index = deriveIndex;
-      return pubKey;
-    });
 
     return {
       address: key.address,

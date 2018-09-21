@@ -1,6 +1,8 @@
 const dbInstance = require('../../controllers/dbController').get(),
   genericMessages = require('../../factories/messages/genericMessages'),
   extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
+  plugins = require('../../plugins'),
+  config = require('../../config'),
   keyMessages = require('../../factories/messages/keysMessages'),
   _ = require('lodash');
 
@@ -12,10 +14,18 @@ module.exports = async (req, res) => {
   if (req.body.address)
     req.body = [req.body];
 
+  let permissions = await req.client.getPermissions();
+
+  let permissionAddresses = permissions.map(permission => permission.KeyAddress);
 
   const keys = await dbInstance.models.Keys.findAll({
     where: {
-      address: req.body.map(operation => operation.address)
+      address: {
+        $in: _.chain(permissions)
+          .map(permission => permission.KeyAddress)
+          .filter(address => permissionAddresses.includes(address))
+          .value()
+      }
     }
   });
 
@@ -25,7 +35,7 @@ module.exports = async (req, res) => {
     return !key || (!extractExtendedKey(key.privateKey) && (!!operation.stageChild || operation.incrementChild > 0));
   });
 
-  if(badRule)
+  if (badRule)
     return res.send(Object.assign({operation: badRule}, keyMessages.badOperation));
 
   for (let operation of req.body) {
@@ -48,15 +58,49 @@ module.exports = async (req, res) => {
       key.pubKeysCount = operation.pubKeys;
 
     if (operation.default) {
+
+
+      let ownerAddresses = _.chain(permissions)
+        .filter({owner: true})
+        .map(permission=>permission.KeyAddress)
+        .value();
+
       key.default = true;
       await dbInstance.models.Keys.update({
         default: false
       }, {
         where: {
-          clientId: req.clientId
+          address: {
+            $in: ownerAddresses
+          }
         }
       });
     }
+
+    let pubKeysRecords = (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)).map(deriveIndex => {
+      const pubKeys = _.chain(plugins.plugins).toPairs().transform((result, pair) => {
+        result.push({
+          blockchain: pair[0],
+          pubKey: new pair[1](config.network).getPublicKey(key.privateKey, deriveIndex)
+        });
+      }, []).value();
+
+      return {
+        index: deriveIndex,
+        pubKeys: pubKeys
+      };
+    });
+
+    await dbInstance.models.PubKeys.destroy({where: {KeyAddress: key.address}});
+
+    for (let pubKeysRecord of pubKeysRecords)
+      for (let item of pubKeysRecord.pubKeys)
+        await dbInstance.models.PubKeys.create({
+          KeyAddress: key.address,
+          pubKey: item.pubKey,
+          blockchain: item.blockchain,
+          index: pubKeysRecord.index
+        });
 
     await key.save();
   }

@@ -4,7 +4,7 @@ const bunyan = require('bunyan'),
 
 module.exports = async (req, res, next) => {
 
-  if (req.originalUrl === '/keys/' && req.method === 'POST') {
+  if (new RegExp(/\/keys/).test(req.originalUrl) && req.method === 'POST') {
 
     let payload = _.chain(_.isArray(req.body) ? req.body : [req.body]).cloneDeep().map(item => {
       item.key = 'xxx';

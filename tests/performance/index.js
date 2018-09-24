@@ -17,6 +17,7 @@ const _ = require('lodash'),
   Promise = require('bluebird'),
   path = require('path'),
   fs = require('fs'),
+  config = require('../../server/config'),
   spawn = require('child_process').spawn;
 
 module.exports = (ctx) => {
@@ -29,7 +30,13 @@ module.exports = (ctx) => {
     } catch (e) {
     }
 
-    ctx.server = spawn('node', ['server/index.js'], {env: {NETWORK: 'regtest', DB_URI: dbPath}, stdio: 'ignore'});
+    const serverPath = path.join(__dirname, '../../server/index.js');
+    console.log(serverPath);
+    try {
+      ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: config.network, DB_URI: dbPath}), stdio: 'ignore'});
+    }catch (e) {
+      console.log(e)
+    }
     await Promise.delay(5000);
   });
 
@@ -81,7 +88,7 @@ module.exports = (ctx) => {
       .value();
 
     expect(reply.status).to.eq(1);
-    expect(Date.now() - start).to.be.lt(1000 * totalDeriveKeysAmount);
+    expect(Date.now() - start).to.be.lt(2000 * totalDeriveKeysAmount);
   });
 
   it('validate get keys route', async () => {
@@ -114,9 +121,9 @@ module.exports = (ctx) => {
       for (let pubKey of key.pubKeys) {
 
         const ethPubKey = hdwallet.derivePath(`m/44'/60'/0'/0/${pubKey.index}`).getWallet().getPublicKey().toString('hex');
-        const btcPuBkey = bitcoin.HDNode.fromSeedBuffer(seed).derivePath('m/44\'/0\'/0\'').derivePath(`0/${pubKey.index}`).keyPair.getPublicKeyBuffer().toString('hex');
+        const btcPubkey = bitcoin.HDNode.fromSeedBuffer(seed).derivePath('m/44\'/0\'/0\'').derivePath(`0/${pubKey.index}`).keyPair.getPublicKeyBuffer().toString('hex');
         expect(pubKey.eth === ethPubKey).to.eq(true);
-        expect(pubKey.btc === btcPuBkey).to.eq(true);
+        expect(pubKey.btc === btcPubkey).to.eq(true);
       }
 
       expect(key).to.not.eq(null);

@@ -15,6 +15,7 @@ const
   web3 = new Web3(),
   Promise = require('bluebird'),
   path = require('path'),
+  config = require('../../server/config'),
   fs = require('fs'),
   spawn = require('child_process').spawn;
 
@@ -29,7 +30,8 @@ module.exports = (ctx) => {
 
     }
 
-    ctx.server = spawn('node', ['server/index.js'], {env: {NETWORK: 'regtest', DB_URI: dbPath}, stdio: 'ignore'});
+    const serverPath = path.join(__dirname, '../../server/index.js');
+    ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: config.network, DB_URI: dbPath}), stdio: 'ignore'});
     await Promise.delay(5000);
   });
 
@@ -246,7 +248,7 @@ module.exports = (ctx) => {
       }
     });
 
-    expect(deleteKeyResult.status).to.eq(1);
+    expect(deleteKeyResult.status).to.eq(200);
 
     const newKeys = await request({
       uri: 'http://localhost:8080/keys',
@@ -260,8 +262,6 @@ module.exports = (ctx) => {
     expect(_.isEqual(keys, newKeys)).to.eq(true);
 
   });
-
-
 
 
   after('kill environment', async () => {

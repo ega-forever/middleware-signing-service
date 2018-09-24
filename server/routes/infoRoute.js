@@ -1,7 +1,8 @@
-const infoService = require('../services/info/infoService');
+const infoService = require('../services/info/infoService'),
+  logActionMiddleware = require('../middleware/logActionMiddleware');
 
 module.exports = (router) => {
 
-  router.get('/', infoService);
+  router.get('/', logActionMiddleware, infoService);
 
 };

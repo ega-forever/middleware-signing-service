@@ -6,10 +6,10 @@ const plugins = require('../../plugins'),
 
 module.exports = async (req, res) => {
 
-  if (!plugins[req.params.blockchain] || !req.body.payload)
+  if (!plugins.plugins[req.params.blockchain] || !req.body.payload)
     return res.send(signMessages.wrongPayload);
 
-  const plugin = new plugins[req.params.blockchain](config.network);
+  const plugin = new plugins.plugins[req.params.blockchain](config.network);
   let actionName = _.chain(plugin.actions).keys().find(key=> key.toLowerCase() === req.params.action.toLowerCase()).value();
 
   if(!actionName)

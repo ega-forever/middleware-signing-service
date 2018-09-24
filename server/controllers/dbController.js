@@ -2,14 +2,15 @@ const Sequelize = require('sequelize'),
   config = require('../config');
 
 class Database {
-  constructor() {
+  constructor () {
     this.instance = new Sequelize('main', null, null, {
       dialect: 'sqlite',
       storage: config.dbPath,
+      logging: false
     });
   }
 
-  get() {
+  get () {
     return this.instance;
   }
 

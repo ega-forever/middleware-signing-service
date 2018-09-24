@@ -15,11 +15,13 @@ const
   Web3 = require('web3'),
   hdkey = require('ethereumjs-wallet/hdkey'),
   web3 = new Web3(),
+  config = require('../../server/config'),
   Promise = require('bluebird'),
   btcTest = require('../features/btc'),
   ethTest = require('../features/eth'),
   path = require('path'),
   fs = require('fs'),
+  BtcPlugin = require('../../server/plugins/BtcPlugin'),
   spawn = require('child_process').spawn;
 
 module.exports = (ctx) => {
@@ -33,7 +35,14 @@ module.exports = (ctx) => {
     }
 
     const serverPath = path.join(__dirname, '../../server/index.js');
-    ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: 'regtest', DB_URI: dbPath}), stdio: 'ignore'});
+    ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: config.network, DB_URI: dbPath}), stdio: 'ignore'});
+    ctx.derivePurpose = {
+      btc: new BtcPlugin(config.network).derivePurpose,
+      eth: 60
+    };
+
+
+
     await Promise.delay(5000);
   });
 
@@ -106,8 +115,8 @@ module.exports = (ctx) => {
 
       for (let pubKey of key.pubKeys) {
 
-        const ethPubKey = hdwallet.derivePath(`m/44'/60'/0'/0/${pubKey.index}`).getWallet().getPublicKey().toString('hex');
-        const btcPuBkey = bitcoin.HDNode.fromSeedBuffer(seed).derivePath("m/44'/0'/0'").derivePath(`0/${pubKey.index}`).keyPair.getPublicKeyBuffer().toString('hex');
+        const ethPubKey = hdwallet.derivePath(`m/44'/${ctx.derivePurpose.eth}'/0'/0/${pubKey.index}`).getWallet().getPublicKey().toString('hex');
+        const btcPuBkey = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath(`0/${pubKey.index}`).keyPair.getPublicKeyBuffer().toString('hex');
         expect(pubKey.eth === ethPubKey).to.eq(true);
         expect(pubKey.btc === btcPuBkey).to.eq(true);
       }

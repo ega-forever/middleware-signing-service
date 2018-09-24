@@ -2,6 +2,7 @@ const express = require('express'),
   config = require('./config'),
   routes = require('./routes'),
   models = require('./models'),
+  plugins = require('./plugins'),
   dbController = require('./controllers/dbController'),
   bodyParser = require('body-parser'),
   bunyan = require('bunyan'),
@@ -18,6 +19,7 @@ const init = async () => {
   let dbInstance = dbController.get();
   await dbInstance.sync();
   await models(dbInstance);
+  await plugins.sync();
   routes(app);
 
   app.listen(config.rest.port, () => log.info(`Listening on port ${config.rest.port}!`));

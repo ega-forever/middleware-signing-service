@@ -31,9 +31,9 @@ module.exports = (ctx) => {
     }
 
     const ethPath = path.join(__dirname, '../../tests/utils/eth/ipcConverter.js');
-    ctx.nodePid = spawn('node', [ethPath], {env: process.env, stdio: 'inherit'});
+    ctx.nodePid = spawn('node', [ethPath], {env: process.env, stdio: 'ignore'});
+    await Promise.delay(10000);
     ctx.web3 = new Web3('http://localhost:8545');
-    await Promise.delay(5000);
   });
 
 

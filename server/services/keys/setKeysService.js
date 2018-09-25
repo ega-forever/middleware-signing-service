@@ -34,13 +34,6 @@ module.exports = async (req, res) => {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
 
-    let permission = await dbInstance.models.Permissions.create({
-      owner: true,
-      deriveIndex: 0
-    });
-
-    await permission.setClient(req.client);
-
     let pubKeysRecords = (key.stageChild ? [key.pubKeys - 1] : _.range(0, key.pubKeys)).map(deriveIndex => {
       const pubKeys = _.chain(plugins.plugins).toPairs().transform((result, pair) => {
         result.push({
@@ -76,7 +69,14 @@ module.exports = async (req, res) => {
       }]
     });
 
-    await permission.setKey(keyRecord);
+
+    await dbInstance.models.Permissions.create({
+      ClientId: req.client.id,
+      owner: true,
+      deriveIndex: 0,
+      KeyAddress: keyRecord.address
+    });
+
   }
 
 

@@ -44,6 +44,12 @@ module.exports = async (req, res) => {
       }
     });
 
+    await dbInstance.models.PubKeys.destroy({
+      where: {
+        KeyAddress: group.address
+      }
+    });
+
   }
 
 

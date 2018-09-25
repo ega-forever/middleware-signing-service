@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
 
       let ownerAddresses = _.chain(permissions)
         .filter({owner: true})
-        .map(permission=>permission.KeyAddress)
+        .map(permission => permission.KeyAddress)
         .value();
 
       key.default = true;
@@ -101,6 +101,34 @@ module.exports = async (req, res) => {
           blockchain: item.blockchain,
           index: pubKeysRecord.index
         });
+
+    if (operation.share && operation.clientId) {
+
+      const client = await dbInstance.models.Clients.findOne({where: {clientId: operation.clientId}});
+
+      await dbInstance.models.Permissions.destroy({
+        where: {
+          ClientId: client.id,
+          KeyAddress: key.address
+        }
+      });
+
+
+      if (!operation.children)
+        operation.children = pubKeysRecords.map(item => item.index);
+
+      if (client)
+        for (let index of operation.children)
+          await dbInstance.models.Permissions.create({
+            ClientId: client.id,
+            owner: false,
+            deriveIndex: index,
+            KeyAddress: key.address
+          });
+
+
+    }
+
 
     await key.save();
   }

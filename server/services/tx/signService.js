@@ -32,6 +32,39 @@ module.exports = async (req, res) => {
       .compact()
       .value();
 
+
+  let sharedKeyPermissions = _.filter(permissions, permission => !permission.owner && req.body.signers.includes(permission.KeyAddress));
+
+
+  if (_.has(req.body, 'options.useKeys')) {
+    for (let address of Object.keys(req.body.options.useKeys)) {
+
+      let keyPermissions = _.filter(permissions, {KeyAddress: address});
+
+      if (!keyPermissions.length) {
+        delete req.body.options.useKeys[address];
+        continue;
+      }
+
+      if (_.find(keyPermissions, {owner: true}))
+        continue;
+
+      for (let index of req.body.options.useKeys[address])
+        if (!_.find(keyPermissions, {deriveIndex: index}))
+          _.pull(req.body.options.useKeys[address], index);
+
+
+    }
+  } else if (sharedKeyPermissions.length) {
+    _.chain(sharedKeyPermissions).groupBy('address')
+      .toPairs().forEach(pair => {
+      if (!_.has(req.body, 'options.useKeys'))
+        _.set(req.body, 'options.useKeys', {});
+      req.body.options.useKeys[pair[0]] = pair[1].map(item => item.index);
+    })
+      .value();
+  }
+
   let tx = await plugin.sign(keys, req.body.payload, req.body.options);
 
   return res.send({rawTx: tx});

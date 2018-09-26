@@ -162,8 +162,7 @@ Reload_PROD_Nginx_conf:
     - gcloud container clusters get-credentials production --zone us-central1-b --project deep-wares-144610
 
   script:
-    - kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -t" && kubectl exec -n default $(kubectl
-get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -s reload"
+    - kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -t" && kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -s reload"
 
   only:
     - master
@@ -181,8 +180,7 @@ Reload_STAGE_Nginx_conf:
     - gcloud container clusters get-credentials stage --zone us-central1-b --project deep-wares-144610
 
   script:
-    - kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -t" && kubectl exec -n default $(kubectl
-get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -s reload"
+    - kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -t" && kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -s reload"
 
   only:
     - develop

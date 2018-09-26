@@ -12,6 +12,10 @@ module.exports = (sequelize) => {
       allowNull: false,
       unique: true
     },
+    info: {
+      type: Sequelize.STRING,
+      allowNull: true
+    },
     pubKeysCount: {
       type: Sequelize.INTEGER,
       allowNull: false,

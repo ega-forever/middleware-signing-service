@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
 
   let permissions = await req.client.getPermissions();
 
-  let permissionAddresses = permissions.map(permission => permission.KeyAddress);
+  let permissionAddresses = _.chain(permissions).filter({owner: true}).map(permission => permission.KeyAddress).value();
 
   const keys = await dbInstance.models.Keys.findAll({
     where: {
@@ -56,6 +56,9 @@ module.exports = async (req, res) => {
 
     if (!operation.stageChild && !operation.incrementChild && operation.pubKeys)
       key.pubKeysCount = operation.pubKeys;
+
+    if (_.isString(operation.info))
+      key.info = operation.info;
 
     if (operation.default) {
 
@@ -102,16 +105,17 @@ module.exports = async (req, res) => {
           index: pubKeysRecord.index
         });
 
-    if (operation.share && operation.clientId) {
+    if (operation.share && operation.clientId && operation.clientId !== req.client.clientId) {
 
       const client = await dbInstance.models.Clients.findOne({where: {clientId: operation.clientId}});
 
-      await dbInstance.models.Permissions.destroy({
-        where: {
-          ClientId: client.id,
-          KeyAddress: key.address
-        }
-      });
+      if (client)
+        await dbInstance.models.Permissions.destroy({
+          where: {
+            ClientId: client.id,
+            KeyAddress: key.address
+          }
+        });
 
 
       if (!operation.children)

@@ -52,6 +52,7 @@ module.exports = async (req, res) => {
       pubKeysCount: key.pubKeys || 1,
       isStageChild: !!key.stageChild,
       privateKey: extendedKey || key.key,
+      info: _.isString(key.info) ? key.info : '',
       address: account.address.toLowerCase(),
       default: !!key.default,
       PubKeys: _.chain(pubKeysRecords).map(pubKeysRecord =>

@@ -69,7 +69,7 @@ module.exports = (ctx) => {
       }
     });
 
-    expect(keys.length).to.eq(ctx.keys.length);
+    expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
 
     for (let item of ctx.keys) {
 

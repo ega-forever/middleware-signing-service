@@ -44,7 +44,9 @@ module.exports = async (req, res) => {
     return {
       address: key.address,
       pubKeys: pubKeys,
-      default: key.default
+      default: key.default,
+      shared: !isOwner,
+      info: key.info
     };
 
   }).value();

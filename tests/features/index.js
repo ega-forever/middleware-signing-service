@@ -35,7 +35,7 @@ module.exports = (ctx) => {
     }
 
     const serverPath = path.join(__dirname, '../../server/index.js');
-    ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: config.network, DB_URI: dbPath}), stdio: 'inherit'});
+    ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: config.network, DB_URI: dbPath}), stdio: 'ignore'});
     ctx.derivePurpose = {
       btc: new BtcPlugin(config.network).derivePurpose,
       eth: 60
@@ -253,7 +253,7 @@ module.exports = (ctx) => {
 
   describe('btc', () => btcTest(ctx));
 
-  //describe('eth', () => ethTest(ctx));
+  describe('eth', () => ethTest(ctx));
 
   after('kill environment', async () => {
     ctx.server.kill();

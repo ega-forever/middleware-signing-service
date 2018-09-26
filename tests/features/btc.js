@@ -372,7 +372,6 @@ module.exports = (ctx) => {
     await client.execute('generatetoaddress', [10, addressRegtest]);
   });
 
-
   it('create multisig transaction for btc (two clients, 3 keys)', async () => {
 
     const masterKeys = _.union(ctx.keys, ctx.keys2).map(key => {
@@ -478,9 +477,184 @@ module.exports = (ctx) => {
     expect(pushedTx).to.not.eq(null);
   });
 
+  it('generate some coins for multisig again (two clients, 3 keys)', async () => {
+
+    const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
+    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, ctx.sharedKey.pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
+
+    const redeemScript = bitcoin.script.multisig.output.encode(2, pubKeys); // 2 of 3
+    const scriptPubKey = bitcoin.script.scriptHash.output.encode(bitcoin.crypto.hash160(redeemScript));
+    const multisigAddress = bitcoin.address.fromOutputScript(scriptPubKey, bitcoin.networks.testnet);
+    const regtestMultiSig = bcoin.primitives.Address.fromOptions(multisigAddress, Network.get('testnet')).toBase58(Network.get('regtest'));
+
+    const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
+
+    let coins = await client.execute('getcoinsbyaddress', [addressRegtest]);
+    coins = _.chain(coins).sortBy('height').take(20).value();
+
+    const mtx = new bcoin.primitives.MTX();
+
+    for (let index = 0; index < coins.length; index++) {
+      const coin = bcoin.primitives.Coin.fromJSON(coins[index]);
+      mtx.addCoin(coin);
+    }
+
+    const value = _.chain(coins).map(coin => coin.value).sort('height').take(20).sum().value() - 5000;
+
+    mtx.addOutput({
+      address: regtestMultiSig,
+      value: value
+    });
+
+    mtx.sign(new keyring(key.d.toBuffer(32)));
+
+    const tx = mtx.toTX();
+    const txHash = tx.txid();
+    const rawTx = tx.toRaw().toString('hex');
+    const sendTxResult = await client.execute('sendrawtransaction', [rawTx]);
+    expect(txHash).to.eq(sendTxResult);
+
+    await client.execute('generatetoaddress', [10, addressRegtest]);
+  });
+
+  it('create multisig transaction for btc in two steps (two clients, 3 keys)', async () => {
+
+    const masterKeys = _.union(ctx.keys, ctx.keys2).map(key => {
+      const seed = bip39.mnemonicToSeed(key.key);
+      const masterKey = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`);
+
+      let hdwallet = hdkey.fromMasterSeed(seed);
+      const extendedPrivKey = hdwallet.privateExtendedKey();
+      const privateKey = hdkey.fromExtendedKey(extendedPrivKey).getWallet().getPrivateKey();
+      const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+      const address = account.address.toLowerCase();
+
+      return {
+        key: masterKey,
+        address: address
+      }
+    });
+
+    const seed = bip39.mnemonicToSeed(ctx.keys[0]);
+
+    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+    const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
+    const addressTestnet = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('testnet'));
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
 
 
-/*
+    const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, ctx.sharedKey.pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
+
+    const keyPairs = _.chain([
+      {address: keys[0].address, derive: [0, 1]},
+      {address: ctx.sharedKey.address, derive: [ctx.sharedKey.pubKeys[0].index]}
+    ]).map(key => {
+      let masterKey = _.find(masterKeys, {address: key.address}).key;
+      return key.derive.map(index => {
+        let keyPair = masterKey.derivePath(`0/${index}`).keyPair;
+        keyPair.network = bitcoin.networks.testnet;
+        return keyPair;
+      })
+    }).flattenDeep().value();
+
+
+    const pubKeys2 = keyPairs.map(pair => pair.getPublicKeyBuffer().toString('hex'));
+
+    expect(_.isEqual([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, ctx.sharedKey.pubKeys[0].btc], pubKeys2)).to.eq(true);
+
+
+    const redeemScript = bitcoin.script.multisig.output.encode(2, pubKeys); // 2 of 3
+    const scriptPubKey = bitcoin.script.scriptHash.output.encode(bitcoin.crypto.hash160(redeemScript));
+    const multisigAddress = bitcoin.address.fromOutputScript(scriptPubKey, bitcoin.networks.testnet);
+    const regtestMultiSig = bcoin.primitives.Address.fromOptions(multisigAddress, Network.get('testnet')).toBase58(Network.get('regtest'));
+
+
+    let coins = await client.execute('getcoinsbyaddress', [regtestMultiSig]);
+    coins = _.sortBy(coins, 'height');
+
+    const txb = new bitcoin.TransactionBuilder(bitcoin.networks.testnet);
+
+    txb.addInput(coins[0].hash, coins[0].index);
+    txb.addOutput(addressTestnet, coins[0].value - 5000);
+    const incompleteTx = txb.buildIncomplete().toHex();
+
+    const reply = await request({
+      uri: 'http://localhost:8080/tx/btc',
+      method: 'POST',
+      json: {
+        signers: [keys[0].address],
+        payload: {
+          incompleteTx: incompleteTx,
+          redeemScript: redeemScript
+        },
+        options: {
+          sigRequired: 2,
+          useKeys: {
+            [keys[0].address]: [0]
+          }
+        }
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+
+    const reply2 = await request({
+      uri: 'http://localhost:8080/tx/btc',
+      method: 'POST',
+      json: {
+        signers: [ctx.sharedKey.address],
+        payload: {
+          incompleteTx: reply.rawTx,
+          redeemScript: redeemScript
+        },
+        options: {
+          sigRequired: 2,
+          useKeys: {
+            [ctx.sharedKey.address]: [ctx.sharedKey.pubKeys[0].index]
+          }
+        }
+      },
+      headers: {
+        client_id: ctx.client2.clientId
+      }
+    });
+
+    for (let i = 0; i < txb.tx.ins.length; i++)
+      for (let keyPair of [keyPairs[0], keyPairs[2]])
+        txb.sign(i, keyPair, redeemScript);
+
+
+    expect(txb.build().toHex()).to.eq(reply2.rawTx);
+
+
+    const sendTxResult = await client.execute('sendrawtransaction', [reply2.rawTx]);
+    await client.execute('generatetoaddress', [1, addressRegtest]);
+    const pushedTx = await client.execute('getrawtransaction', [sendTxResult, false]);
+    expect(pushedTx).to.not.eq(null);
+  });
+
+
   it('check keys staging', async () => {
 
     const keys = await request({
@@ -492,7 +666,7 @@ module.exports = (ctx) => {
       }
     });
 
-    expect(keys.length).to.eq(ctx.keys.length);
+    expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
 
     let stageKey = _.find(keys, key => key.pubKeys.length > 1);
 
@@ -558,7 +732,7 @@ module.exports = (ctx) => {
       }
     });
 
-    expect(keys.length).to.eq(ctx.keys.length);
+    expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
 
     let stageKey = _.find(keys, key => key.pubKeys.length === 1);
 
@@ -805,7 +979,7 @@ module.exports = (ctx) => {
     const pushedTx = await client.execute('getrawtransaction', [sendTxResult, false]);
     expect(pushedTx).to.not.eq(null);
   });
-*/
+
 
   after('kill environment', async () => {
     ctx.nodePid.kill();

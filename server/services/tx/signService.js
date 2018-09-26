@@ -1,9 +1,22 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const plugins = require('../../plugins'),
   config = require('../../config'),
   signMessages = require('../../factories/messages/signMessages'),
   _ = require('lodash'),
   dbInstance = require('../../controllers/dbController').get();
 
+/**
+ * @function
+ * @description remove exciting client
+ * @param req - request object
+ * @param res - response object
+ * @return {Promise<*>}
+ */
 module.exports = async (req, res) => {
 
   if (!plugins.plugins[req.params.blockchain] || !req.body.payload)

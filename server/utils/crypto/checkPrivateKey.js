@@ -1,6 +1,12 @@
 const extractExtendedKey = require('./extractExtendedKey'),
   hdkey = require('ethereumjs-wallet/hdkey');
 
+/**
+ * @function
+ * @description check if private key valid
+ * @param key
+ * @return {boolean}
+ */
 module.exports = (key) => {
 
   try {

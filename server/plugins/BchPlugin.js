@@ -38,6 +38,14 @@ class BchPlugin extends AbstractPlugin {
     this.derivePurpose = this.derivePurposeMap[network];
   }
 
+  /**
+   * @function
+   * @description sign the transaction
+   * @param signers - private keys objects
+   * @param txParams - transaction params
+   * @param options - sign options
+   * @return {String}
+   */
   sign (signers, txParams, options = {}) {
 
     if (!options.sigRequired)
@@ -87,6 +95,13 @@ class BchPlugin extends AbstractPlugin {
     return restoredTxb.build().toHex();
   }
 
+  /**
+   * @function
+   * @description return derived public key from master private key
+   * @param privKey - master private key
+   * @param deriveIndex - derive index
+   * @return {String}
+   */
   getPublicKey (privKey, deriveIndex) {
 
     if (privKey.length <= 66) {

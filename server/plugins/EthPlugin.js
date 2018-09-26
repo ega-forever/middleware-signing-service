@@ -8,7 +8,11 @@ const EthereumTx = require('ethereumjs-tx'),
   crypto = require('crypto'),
   hdkey = require('ethereumjs-wallet/hdkey');
 
-
+/**
+ * @class
+ * @description Ethereum plugin
+ * @param network - network's alias name (i.e main, testnet, regtest)
+ */
 class EthPlugin extends AbstractPlugin {
 
   constructor (network) {
@@ -19,6 +23,13 @@ class EthPlugin extends AbstractPlugin {
     };
   }
 
+  /**
+   * @function
+   * @description sign the transaction
+   * @param signers - private keys objects
+   * @param txParams - transaction params
+   * @return {*}
+   */
   async sign (signers, txParams) {
 
     let privateKey = signers[0].privateKey;
@@ -38,6 +49,13 @@ class EthPlugin extends AbstractPlugin {
     };
   }
 
+  /**
+   * @function
+   * @description return derived public key from master private key
+   * @param privKey - master private key
+   * @param deriveIndex - derive index
+   * @return {*}
+   */
   getPublicKey (privKey, deriveIndex) {
 
     if (privKey.length <= 66) {
@@ -59,6 +77,13 @@ class EthPlugin extends AbstractPlugin {
     return pubKey.toString('hex');
   }
 
+  /**
+   * @function
+   * @description sign the payload for 2fa function call
+   * @param signers - private keys objects
+   * @param payload - payload to sign
+   * @return {*}
+   */
   async sign2faCall (signers, payload){
 
     const secret = await Promise.promisify(crypto.randomBytes)(128);

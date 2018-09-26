@@ -1,8 +1,20 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const AbstractPlugin = require('./abstract/AbstractPlugin'),
   bigi = require('bigi'),
   _ = require('lodash'),
   bitcoin = require('bitcoinjs-lib');
 
+
+/**
+ * @class
+ * @description Bitcoin plugin
+ * @param network - network's alias name (i.e main, testnet, regtest)
+ */
 class BtcPlugin extends AbstractPlugin {
 
   constructor (network) {
@@ -24,6 +36,14 @@ class BtcPlugin extends AbstractPlugin {
     this.derivePurpose = this.derivePurposeMap[network];
   }
 
+  /**
+   * @function
+   * @description sign the transaction
+   * @param signers - private keys objects
+   * @param txParams - transaction params
+   * @param options - sign options
+   * @return {String}
+   */
   sign (signers, txParams, options = {}) {
 
     if (!options.sigRequired)
@@ -70,6 +90,13 @@ class BtcPlugin extends AbstractPlugin {
     return restoredTxb.build().toHex();
   }
 
+  /**
+   * @function
+   * @description return derived public key from master private key
+   * @param privKey - master private key
+   * @param deriveIndex - derive index
+   * @return {String}
+   */
   getPublicKey (privKey, deriveIndex) {
 
     if (privKey.length <= 66) {

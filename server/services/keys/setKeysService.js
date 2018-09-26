@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const dbInstance = require('../../controllers/dbController').get(),
   Web3 = require('web3'),
   _ = require('lodash'),
@@ -10,6 +16,13 @@ const dbInstance = require('../../controllers/dbController').get(),
   checkPrivateKey = require('../../utils/crypto/checkPrivateKey'),
   web3 = new Web3();
 
+/**
+ * @function
+ * @description add new keys for client
+ * @param req - request object
+ * @param res - response object
+ * @return {Promise<*>}
+ */
 module.exports = async (req, res) => {
 
   if (!req.body.key && !_.get(req.body, '0.key'))

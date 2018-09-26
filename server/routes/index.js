@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const express = require('express'),
   bunyan = require('bunyan'),
   messages = require('../factories/messages/genericMessages'),
@@ -18,6 +24,11 @@ const asyncMiddlewareWrapper = fn =>
       });
   };
 
+/**
+ * @factory
+ * @description route factory
+ * @param app - express instance
+ */
 module.exports = (app) => {
 
   for (let path of Object.keys(routes)) {

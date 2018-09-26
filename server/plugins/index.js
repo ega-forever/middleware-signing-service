@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const requireAll = require('require-all'),
   _ = require('lodash'),
   config = require('../config'),
@@ -12,6 +18,12 @@ const requireAll = require('require-all'),
 
 const pluginPairs = _.chain(plugins).toPairs().filter(pair => pair[1].prototype instanceof AbstractPlugin).fromPairs().value();
 
+/**
+ * @function
+ * @description update the pub keys table in sequilize (in case
+ * new plugin has been added)
+ * @return {Promise<void>}
+ */
 const updatePubKeys = async () => {
 
   const keys = await dbInstance.models.Keys.findAll();
@@ -47,7 +59,11 @@ const updatePubKeys = async () => {
   }
 };
 
-
+/**
+ * @function
+ * @description update pub keys table (in case old plugin has been removed)
+ * @return {Promise<void>}
+ */
 const removeOutdatedPubKeys = async () => {
   await dbInstance.models.PubKeys.destroy({
     where: {
@@ -58,7 +74,11 @@ const removeOutdatedPubKeys = async () => {
   });
 };
 
-
+/**
+ * @function
+ * @description sync changes (in case we have added / removed plugin)
+ * @return {Promise<void>}
+ */
 const sync = async () => {
 
   const blockchains = Object.keys(pluginPairs);
@@ -92,7 +112,10 @@ const sync = async () => {
 
 };
 
-
+/**
+ * @factory
+ * @type {{plugins: *, sync: sync}}
+ */
 module.exports = {
   plugins: pluginPairs,
   sync: sync

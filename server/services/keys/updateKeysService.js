@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const dbInstance = require('../../controllers/dbController').get(),
   genericMessages = require('../../factories/messages/genericMessages'),
   extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
@@ -6,6 +12,13 @@ const dbInstance = require('../../controllers/dbController').get(),
   keyMessages = require('../../factories/messages/keysMessages'),
   _ = require('lodash');
 
+/**
+ * @function
+ * @description update exciting private key
+ * @param req - request object
+ * @param res - response object
+ * @return {Promise<*>}
+ */
 module.exports = async (req, res) => {
 
   if (!req.body.address && !_.get(req.body, '0.address'))

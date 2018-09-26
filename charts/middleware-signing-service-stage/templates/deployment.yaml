@@ -31,16 +31,16 @@ spec:
           ports:
             - containerPort: {{ .Values.service.internalPort }}
           livenessProbe:
-            initialDelaySeconds: 300
-            timeoutSeconds: 30
+            initialDelaySeconds: 120
+            timeoutSeconds: 10
             periodSeconds: 10
             failureThreshold: 3
             httpGet:
               path: /info
               port: {{ .Values.service.internalPort }}
           readinessProbe:
-            initialDelaySeconds: 300
-            timeoutSeconds: 30
+            initialDelaySeconds: 120
+            timeoutSeconds: 10
             periodSeconds: 10
             failureThreshold: 3
             httpGet:

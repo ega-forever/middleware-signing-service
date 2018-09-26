@@ -5,6 +5,8 @@ stages:
   - release
   - stage
   - deploy
+  - nginx_reload
+  - clean
 
 variables:
   REGISTRY: gcr.io/deep-wares-144610
@@ -33,6 +35,7 @@ Build:
   script:
     - apt update
     - apt install git-all pkg-config libncurses5-dev libssl-dev libnss3-dev libexpat-dev libc6-dev g++ gcc make python -y
+    - npm cache clean
     - npm install
 
   artifacts:
@@ -50,6 +53,7 @@ Tests:
   before_script:
     - apt update
     - apt install git-all pkg-config libncurses5-dev libssl-dev libnss3-dev libexpat-dev libc6-dev g++ gcc make python -y
+    - npm cache clean
     - npm install
 
 
@@ -146,6 +150,58 @@ Deploy_to_PROD:
     - prod
   only:
     - tags
+
+######################################################### RELOAD PROD NGINX DNS CACHE ###########################################################
+
+Reload_PROD_Nginx_conf:
+  stage: nginx_reload
+  image: artemkin/helm-gke:1.0
+  before_script:
+
+    - gcloud auth activate-service-account --key-file=/gke-secret/key.json
+    - gcloud container clusters get-credentials production --zone us-central1-b --project deep-wares-144610
+
+  script:
+    - kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -t" && kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -s reload"
+
+  only:
+    - master
+
+##################################################################################################################################################
+
+######################################################### RELOAD STAGE NGINX DNS CACHE ###########################################################
+
+Reload_STAGE_Nginx_conf:
+  stage: nginx_reload
+  image: artemkin/helm-gke:1.0
+  before_script:
+
+    - gcloud auth activate-service-account --key-file=/gke-secret/key.json
+    - gcloud container clusters get-credentials stage --zone us-central1-b --project deep-wares-144610
+
+  script:
+    - kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -t" && kubectl exec -n default $(kubectl get pod -n default | grep nginx | awk '{print$1}') -- bash -c "nginx -s reload"
+
+  only:
+    - develop
+
+##################################################################################################################################################
+
+
+########################################################## CLEAN UP #################################################################################
+Clean_up:
+  stage: clean
+  image: docker
+
+  script:
+    - docker system prune --force
+    - docker image prune -a
+  only:
+    - master
+    - develop
+
+##################################################################################################################################################
+
 
 
 #### End

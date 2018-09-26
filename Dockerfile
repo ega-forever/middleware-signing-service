@@ -5,6 +5,6 @@ ENV DB_URI /app/sqlite/db.sqlite
 RUN mkdir /app /app/sqlite
 WORKDIR /app
 COPY . .
-RUN  npm cache clean && npm install
+RUN  npm cache verify && npm install
 EXPOSE 8080
 CMD ["node", "server/index.js"]

@@ -33,6 +33,7 @@ Build:
   script:
     - apt update
     - apt install git-all pkg-config libncurses5-dev libssl-dev libnss3-dev libexpat-dev libc6-dev g++ gcc make python -y
+    - npm cache clean
     - npm install
 
   artifacts:
@@ -50,6 +51,7 @@ Tests:
   before_script:
     - apt update
     - apt install git-all pkg-config libncurses5-dev libssl-dev libnss3-dev libexpat-dev libc6-dev g++ gcc make python -y
+    - npm cache clean
     - npm install
 
 

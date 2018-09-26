@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const AbstractPlugin = require('./abstract/AbstractPlugin'),
   bigi = require('bigi'),
   _ = require('lodash'),
@@ -5,6 +11,12 @@ const AbstractPlugin = require('./abstract/AbstractPlugin'),
 
 require('bitcoinjs-testnets').register(bitcoin.networks);
 
+
+/**
+ * @class
+ * @description Bitcoin cash plugin
+ * @param network - network's alias name (i.e main, testnet, regtest)
+ */
 class BchPlugin extends AbstractPlugin {
 
   constructor (network) {

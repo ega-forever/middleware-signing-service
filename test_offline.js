@@ -1,5 +1,6 @@
 let bip39 = require("bip39"),
   bigi = require('bigi'),
+  _ = require('lodash'),
   bitcoin = require('bitcoinjs-lib');
 
 const mnemonic = 'laptop stand rule match source dinosaur real amazing lobster inflict catalog clap';
@@ -28,7 +29,7 @@ const init = async () => {
   txb.addOutput('mr2fCaYi9xyeypxkEmx2NVCSR7kkb7ZLnT', 11000000);
   txb.addOutput('2N8tHkwMDzPAL45W95dmDLGiFnUXoMhfBm9', 101036325);
 
-  const keyPairs = [keyPair, keyPair2];
+  const keyPairs = [keyPair, keyPair2, keyPair3];
 
 /*  for (let index = 0; index < 2; index++) {
     let keyPair = node.derivePath(`0/${index}`).keyPair;
@@ -37,13 +38,37 @@ const init = async () => {
   }*/
 
   for (let i = 0; i < txb.tx.ins.length; i++)
-    for (let keyPair of keyPairs) {
+    for (let keyPair of _.take(keyPairs, 1)) {
       txb.sign(i, keyPair, redeemScript);
     }
 
-  console.log(txb.build().toHex());
+    const builtTxPartial = txb.build().toHex();
 
-}
+  //console.log(builtTxPartial);
+
+  for (let i = 0; i < txb.tx.ins.length; i++)
+    for (let keyPair of [keyPairs[1], keyPairs[2]]) {
+      txb.sign(i, keyPair, redeemScript);
+    }
+
+    const fullBuildTx = txb.build().toHex();
+
+
+
+  const partialTx = bitcoin.Transaction.fromHex(builtTxPartial);
+  const txBuilder = bitcoin.TransactionBuilder.fromTransaction(partialTx, bitcoin.networks.testnet);
+
+  for (let i = 0; i < txBuilder.tx.ins.length; i++)
+    for (let keyPair of [keyPairs[1], keyPairs[2]]) {
+      txBuilder.sign(i, keyPair, redeemScript);
+    }
+
+
+
+    console.log(txBuilder.build().toHex() === fullBuildTx)
+
+
+};
 
 
 module.exports = init().catch(err => console.log(err));

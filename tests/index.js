@@ -10,14 +10,14 @@ process.env.LOG_LEVEL = 'error';
 const fuzzTests = require('./fuzz'),
   performanceTests = require('./performance'),
   featuresTests = require('./features'),
-  //blockTests = require('./blocks'),
+  blockTests = require('./block'),
   ctx = {};
 
 
 describe('signing service', function () {
 
 
-  //describe('block', () => blockTests(ctx));
+  describe('block', () => blockTests(ctx));
 
   describe('performance', () => performanceTests(ctx));
 

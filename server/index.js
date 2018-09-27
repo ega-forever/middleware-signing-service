@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const express = require('express'),
   config = require('./config'),
   routes = require('./routes'),
@@ -9,6 +15,11 @@ const express = require('express'),
   log = bunyan.createLogger({name: 'server'}),
   app = express();
 
+/**
+ * @module entry point
+ * @description process blocks, and notify, through rabbitmq, other
+ * services about new block or tx, where we meet registered address
+ */
 const init = async () => {
 
   app.use(bodyParser.urlencoded({extended: false}));

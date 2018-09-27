@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const dbInstance = require('../../controllers/dbController').get(),
   genericMessages = require('../../factories/messages/genericMessages'),
   extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
@@ -6,6 +12,13 @@ const dbInstance = require('../../controllers/dbController').get(),
   keyMessages = require('../../factories/messages/keysMessages'),
   _ = require('lodash');
 
+/**
+ * @function
+ * @description update exciting private key
+ * @param req - request object
+ * @param res - response object
+ * @return {Promise<*>}
+ */
 module.exports = async (req, res) => {
 
   if (!req.body.address && !_.get(req.body, '0.address'))
@@ -16,7 +29,7 @@ module.exports = async (req, res) => {
 
   let permissions = await req.client.getPermissions();
 
-  let permissionAddresses = permissions.map(permission => permission.KeyAddress);
+  let permissionAddresses = _.chain(permissions).filter({owner: true}).map(permission => permission.KeyAddress).value();
 
   const keys = await dbInstance.models.Keys.findAll({
     where: {
@@ -57,12 +70,15 @@ module.exports = async (req, res) => {
     if (!operation.stageChild && !operation.incrementChild && operation.pubKeys)
       key.pubKeysCount = operation.pubKeys;
 
+    if (_.isString(operation.info))
+      key.info = operation.info;
+
     if (operation.default) {
 
 
       let ownerAddresses = _.chain(permissions)
         .filter({owner: true})
-        .map(permission=>permission.KeyAddress)
+        .map(permission => permission.KeyAddress)
         .value();
 
       key.default = true;
@@ -101,6 +117,35 @@ module.exports = async (req, res) => {
           blockchain: item.blockchain,
           index: pubKeysRecord.index
         });
+
+    if (operation.share && operation.clientId && operation.clientId !== req.client.clientId) {
+
+      const client = await dbInstance.models.Clients.findOne({where: {clientId: operation.clientId}});
+
+      if (client)
+        await dbInstance.models.Permissions.destroy({
+          where: {
+            ClientId: client.id,
+            KeyAddress: key.address
+          }
+        });
+
+
+      if (!operation.children)
+        operation.children = pubKeysRecords.map(item => item.index);
+
+      if (client)
+        for (let index of operation.children)
+          await dbInstance.models.Permissions.create({
+            ClientId: client.id,
+            owner: false,
+            deriveIndex: index,
+            KeyAddress: key.address
+          });
+
+
+    }
+
 
     await key.save();
   }

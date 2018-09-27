@@ -1,3 +1,9 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const dbInstance = require('../../controllers/dbController').get(),
   Web3 = require('web3'),
   _ = require('lodash'),
@@ -10,6 +16,13 @@ const dbInstance = require('../../controllers/dbController').get(),
   checkPrivateKey = require('../../utils/crypto/checkPrivateKey'),
   web3 = new Web3();
 
+/**
+ * @function
+ * @description add new keys for client
+ * @param req - request object
+ * @param res - response object
+ * @return {Promise<*>}
+ */
 module.exports = async (req, res) => {
 
   if (!req.body.key && !_.get(req.body, '0.key'))
@@ -34,13 +47,6 @@ module.exports = async (req, res) => {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
 
-    let permission = await dbInstance.models.Permissions.create({
-      owner: true,
-      deriveIndex: 0
-    });
-
-    await permission.setClient(req.client);
-
     let pubKeysRecords = (key.stageChild ? [key.pubKeys - 1] : _.range(0, key.pubKeys)).map(deriveIndex => {
       const pubKeys = _.chain(plugins.plugins).toPairs().transform((result, pair) => {
         result.push({
@@ -59,6 +65,7 @@ module.exports = async (req, res) => {
       pubKeysCount: key.pubKeys || 1,
       isStageChild: !!key.stageChild,
       privateKey: extendedKey || key.key,
+      info: _.isString(key.info) ? key.info : '',
       address: account.address.toLowerCase(),
       default: !!key.default,
       PubKeys: _.chain(pubKeysRecords).map(pubKeysRecord =>
@@ -76,7 +83,14 @@ module.exports = async (req, res) => {
       }]
     });
 
-    await permission.setKey(keyRecord);
+
+    await dbInstance.models.Permissions.create({
+      ClientId: req.client.id,
+      owner: true,
+      deriveIndex: 0,
+      KeyAddress: keyRecord.address
+    });
+
   }
 
 

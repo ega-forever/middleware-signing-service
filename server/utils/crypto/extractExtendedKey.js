@@ -1,6 +1,12 @@
 const bip39 = require('bip39'),
   hdkey = require('ethereumjs-wallet/hdkey');
 
+/**
+ * @function
+ * @description extract private key
+ * @param key
+ * @return {*}
+ */
 module.exports = (key) => {
 
   if (key.match(/\S+/g).length === 12) { //mnemonic

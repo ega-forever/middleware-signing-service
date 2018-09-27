@@ -1,8 +1,21 @@
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
+
 const dbInstance = require('../../controllers/dbController').get(),
   genericMessages = require('../../factories/messages/genericMessages'),
   _ = require('lodash'),
   keyMessages = require('../../factories/messages/keysMessages');
 
+/**
+ * @function
+ * @description delete exciting client's private key
+ * @param req - request object
+ * @param res - response object
+ * @return {Promise<*>}
+ */
 module.exports = async (req, res) => {
 
   if (!req.body.address && !_.get(req.body, '0.address'))
@@ -39,6 +52,12 @@ module.exports = async (req, res) => {
     });
 
     await dbInstance.models.Permissions.destroy({
+      where: {
+        KeyAddress: group.address
+      }
+    });
+
+    await dbInstance.models.PubKeys.destroy({
       where: {
         KeyAddress: group.address
       }

@@ -6,23 +6,13 @@
 
 require('dotenv/config');
 
-const
-  _ = require('lodash'),
-  bip39 = require('bip39'),
-  request = require('request-promise'),
-  expect = require('chai').expect,
-  Web3 = require('web3'),
-  web3 = new Web3(),
-  Promise = require('bluebird'),
-  path = require('path'),
-  config = require('../../server/config'),
-  fs = require('fs'),
-  spawn = require('child_process').spawn;
+const btcTest = require('./btc');
 
 module.exports = (ctx) => {
 
   before(async () => {
   });
 
+  describe('btc', () => btcTest(ctx));
 
 };

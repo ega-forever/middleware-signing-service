@@ -31,7 +31,6 @@ module.exports = (ctx) => {
     }
 
     const serverPath = path.join(__dirname, '../../server/index.js');
-    console.log(serverPath);
     try {
       ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: config.network, DB_URI: dbPath}), stdio: 'ignore'});
     }catch (e) {

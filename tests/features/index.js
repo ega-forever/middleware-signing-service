@@ -19,6 +19,7 @@ const
   Promise = require('bluebird'),
   btcTest = require('../features/btc'),
   ethTest = require('../features/eth'),
+  nemTest = require('../features/nem'),
   path = require('path'),
   fs = require('fs'),
   BtcPlugin = require('../../server/plugins/BtcPlugin'),
@@ -38,7 +39,8 @@ module.exports = (ctx) => {
     ctx.server = spawn('node', [serverPath], {env: _.merge({}, process.env, {NETWORK: config.network, DB_URI: dbPath}), stdio: 'ignore'});
     ctx.derivePurpose = {
       btc: new BtcPlugin(config.network).derivePurpose,
-      eth: 60
+      eth: 60,
+      nem: 43
     };
 
 
@@ -251,9 +253,11 @@ module.exports = (ctx) => {
     expect(newSharedKey.pubKeys.length).to.eq(2);
   });
 
-  describe('btc', () => btcTest(ctx));
+  //describe('btc', () => btcTest(ctx));
 
-  describe('eth', () => ethTest(ctx));
+  //describe('eth', () => ethTest(ctx));
+
+  describe('nem', () => nemTest(ctx));
 
   after('kill environment', async () => {
     ctx.server.kill();

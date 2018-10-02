@@ -17,11 +17,11 @@ const fuzzTests = require('./fuzz'),
 describe('signing service', function () {
 
 
-  describe('block', () => blockTests(ctx));
+ // describe('block', () => blockTests(ctx));
 
-  describe('performance', () => performanceTests(ctx));
+ // describe('performance', () => performanceTests(ctx));
 
-  describe('fuzz', () => fuzzTests(ctx));
+ // describe('fuzz', () => fuzzTests(ctx));
 
   describe('features', () => featuresTests(ctx));
 

@@ -47,6 +47,9 @@ module.exports = async (req, res) => {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
 
+    if (!_.isNumber(key.pubKeys))
+      key.pubKeys = 1;
+
     let pubKeysRecords = (key.stageChild ? [key.pubKeys - 1] : _.range(0, key.pubKeys)).map(deriveIndex => {
       const pubKeys = _.chain(plugins.plugins).toPairs().transform((result, pair) => {
         result.push({

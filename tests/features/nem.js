@@ -105,52 +105,45 @@ module.exports = (ctx) => {
     }
   });
 
-    it('create transaction for nem', async () => {
+  it('create transaction for nem', async () => {
 
-      const keyA = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
-        return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
-      }).value();
+    let privateKey = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
+      return item.key.replace('0x', '');
+    }).value();
 
+    const account = web3.eth.accounts.privateKeyToAccount(`0x${privateKey}`);
+    const address = account.address.toLowerCase();
 
-      const accounts = await ctx.web3.eth.getAccounts();
-      const account = ctx.web3.eth.accounts.privateKeyToAccount(keyA);
-      const address = account.address.toLowerCase();
-      let nonce = await ctx.web3.eth.getTransactionCount(address);
+    const part1 = Buffer.from(privateKey.substr(0, 64), 'hex');
+    const part2 = Buffer.from(privateKey.substr(64, 64), 'hex');
+    const hex = xor(part1, part2).toString('hex');
+    const keyPair = nem.crypto.keyPair.create(hex);
+    const common = nem.model.objects.create('common')('', keyPair.privateKey);
 
-      const rawTx = {
-        nonce: ctx.web3.utils.toHex(nonce),
-        gasPrice: ctx.web3.utils.toHex(ctx.web3.utils.toWei('20', 'gwei')),
-        gasLimit: ctx.web3.utils.toHex(100000),
-        to: accounts[4].toLowerCase(),
-        from: address,
-        value: ctx.web3.utils.toHex(Math.pow(10, 16) + '')
-      };
+    let type = 'transferTransaction';
+    let transferTransaction = nem.model.objects.create(type)('TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S', 10, 'Hello');
 
-      const privateKeyBuffer = Buffer.from(keyA.replace('0x', ''), 'hex');
-      const tx = new EthereumTx(rawTx);
-      tx.sign(privateKeyBuffer);
+    const txParams = {
+      type: type,
+      tx: transferTransaction
+    };
 
-      const reply = await request({
-        uri: 'http://localhost:8080/tx/eth',
-        method: 'POST',
-        json: {
-          signers: [address],
-          payload: rawTx
-        },
-        headers: {
-          client_id: ctx.client.clientId
-        }
-      });
+    const signedTx = nem.model.transactions.prepare(txParams.type)(common, txParams.tx, nem.model.network.data.testnet.id);
 
-      expect(reply.rawTx).to.include.all.keys('r', 's', 'v', 'messageHash', 'rawTransaction');
-      expect(reply.rawTx.rawTransaction).to.eq(`0x${tx.serialize().toString('hex')}`);
-      let txResult = await ctx.web3.eth.sendSignedTransaction(reply.rawTx.rawTransaction);
-      expect(txResult.transactionHash).to.eq(reply.rawTx.messageHash);
+    const reply = await request({
+      uri: 'http://localhost:8080/tx/nem',
+      method: 'POST',
+      json: {
+        signers: [address],
+        payload: txParams
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
     });
 
-/*    after('kill environment', async () => {
-      ctx.nodePid.kill();
-    });*/
-
+    expect(reply.rawTx).to.include.all.keys(...Object.keys(signedTx));
+        expect(_.isEqual(reply.rawTx, signedTx)).to.eq(true);
+  });
 
 };

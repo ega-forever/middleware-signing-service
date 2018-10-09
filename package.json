@@ -9,6 +9,7 @@
   "author": "chronobank",
   "license": "AGPL-3.0",
   "dependencies": {
+    "@waves/waves-api": "^1.5.1",
     "bip32": "^1.0.2",
     "bip39": "^2.5.0",
     "bitcoinjs-lib": "github:dabura667/bitcoinjs-lib#bcash330",

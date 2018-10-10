@@ -13,8 +13,7 @@ const _ = require('lodash'),
   Web3 = require('web3'),
   web3 = new Web3(),
   hdkey = require('ethereumjs-wallet/hdkey'),
-  xor = require('buffer-xor'),
-  nem = require('nem-sdk').default;
+  WavesAPI = require('@waves/waves-api');
 
 module.exports = (ctx) => {
 
@@ -24,15 +23,15 @@ module.exports = (ctx) => {
 
   it('save 2 private keys', async () => {
 
-    const seed = bip39.generateMnemonic();
-    let hdwallet = hdkey.fromMasterSeed(seed);
-    const extendedPrivKey = hdwallet.privateExtendedKey();
-    const privateKey = hdkey.fromExtendedKey(extendedPrivKey).getWallet().getPrivateKey().toString('hex');
+    const keys = [];
 
-    const keys = [
-      {key: privateKey},
-      {key: bip39.generateMnemonic()}
-    ];
+    for(let index = 0;index < 2;index++){
+      const seed = bip39.generateMnemonic();
+      let hdwallet = hdkey.fromMasterSeed(seed);
+      const extendedPrivKey = hdwallet.privateExtendedKey();
+      const privateKey = hdkey.fromExtendedKey(extendedPrivKey).getWallet().getPrivateKey().toString('hex');
+      keys.push({key: privateKey})
+    }
 
     ctx.keys.push(...keys);
 
@@ -70,13 +69,12 @@ module.exports = (ctx) => {
 
         privateKey = privateKey.replace('0x', '');
 
-        const part1 = Buffer.from(privateKey.substr(0, 64), 'hex');
-        const part2 = Buffer.from(privateKey.substr(64, 64), 'hex');
-        const hex = xor(part1, part2).toString('hex');
-        let keyPair = nem.crypto.keyPair.create(hex);
+        const Waves = WavesAPI.create(WavesAPI.TESTNET_CONFIG);
+        const keyPair = Waves.Seed.fromExistingPhrase(privateKey).keyPair;
+
 
         let key = _.find(keys, {address: address});
-        expect(key.pubKeys[0].nem === keyPair.publicKey.toString()).to.eq(true);
+        expect(key.pubKeys[0].waves === keyPair.publicKey.toString()).to.eq(true);
         expect(key).to.not.eq(null);
         continue;
       }
@@ -92,45 +90,53 @@ module.exports = (ctx) => {
 
       for (let pubKey of key.pubKeys) {
 
-        let privateKey = hdwallet.derivePath(`m/44'/${ctx.derivePurpose.nem}'/0'/0/${pubKey.index}`).getWallet().getPrivateKey().toString('hex');
-        const part1 = Buffer.from(privateKey.substr(0, 64), 'hex');
-        const part2 = Buffer.from(privateKey.substr(64, 64), 'hex');
-        const hex = xor(part1, part2).toString('hex');
-        let keyPair = nem.crypto.keyPair.create(hex);
-        expect(pubKey.nem === keyPair.publicKey.toString()).to.eq(true);
+        let privateKey = hdwallet.derivePath(`m/44'/${ctx.derivePurpose.waves}'/0'/0/${pubKey.index}`).getWallet().getPrivateKey().toString('hex');
+        const Waves = WavesAPI.create(WavesAPI.TESTNET_CONFIG);
+        const keyPair = Waves.Seed.fromExistingPhrase(privateKey).keyPair;
+        expect(pubKey.waves === keyPair.publicKey.toString()).to.eq(true);
       }
 
       expect(key).to.not.eq(null);
     }
   });
 
-  it('create transaction for nem', async () => {
+
+  it('create transaction for waves', async () => {
 
     let privateKey = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
       return item.key.replace('0x', '');
     }).value();
 
+    const Waves = WavesAPI.create(WavesAPI.TESTNET_CONFIG);
+    const keyPair = Waves.Seed.fromExistingPhrase(privateKey).keyPair;
+
+    const txParams = {
+      type: 4,
+      senderPublicKey: keyPair.publicKey,
+      recipient: Waves.tools.getAddressFromPublicKey(keyPair.publicKey),
+      assetId: 'WAVES',
+      amount: 10000000,
+      feeAssetId: 'WAVES',
+      fee: 100000,
+      attachment: '',
+      timestamp: Date.now()
+    };
+
+    let name = _.chain(Waves.constants).toPairs()
+      .find(pair=>pair[0].includes('_TX') && pair[1] === txParams.type)
+      .get(0)
+      .thru(item=> Waves.constants[`${item}_NAME`])
+      .value();
+
     const account = web3.eth.accounts.privateKeyToAccount(`0x${privateKey}`);
     const address = account.address.toLowerCase();
 
-    const part1 = Buffer.from(privateKey.substr(0, 64), 'hex');
-    const part2 = Buffer.from(privateKey.substr(64, 64), 'hex');
-    const hex = xor(part1, part2).toString('hex');
-    const keyPair = nem.crypto.keyPair.create(hex);
-    const common = nem.model.objects.create('common')('', keyPair.privateKey);
-
-    let type = 'transferTransaction';
-    let transferTransaction = nem.model.objects.create(type)('TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S', 10, 'Hello');
-
-    const txParams = {
-      type: type,
-      tx: transferTransaction
-    };
-
-    const signedTx = nem.model.transactions.prepare(txParams.type)(common, txParams.tx, nem.model.network.data.testnet.id);
+    let tx = await Waves.tools.createTransaction(name, txParams);
+    tx.addProof(keyPair.privateKey);
+    const signedTx = await tx.getJSON();
 
     const reply = await request({
-      uri: 'http://localhost:8080/tx/nem',
+      uri: 'http://localhost:8080/tx/waves',
       method: 'POST',
       json: {
         signers: [address],
@@ -141,8 +147,16 @@ module.exports = (ctx) => {
       }
     });
 
+    let bytes = await tx.signatureGenerator.getBytes();
+    let isValid = Waves.crypto.isValidSignature(bytes, signedTx.proofs[0], keyPair.publicKey);
+    let isValid2 = Waves.crypto.isValidSignature(bytes, reply.rawTx.proofs[0], keyPair.publicKey);
+
+    expect(isValid).to.eq(true);
+    expect(isValid2).to.eq(true);
+
     expect(reply.rawTx).to.include.all.keys(...Object.keys(signedTx));
-        expect(_.isEqual(reply.rawTx, signedTx)).to.eq(true);
+        expect(_.isEqual(_.omit(reply.rawTx, 'proofs'), _.omit(signedTx, 'proofs'))).to.eq(true);
   });
+
 
 };

@@ -39,10 +39,15 @@ module.exports = (ctx) => {
 
   it('save 2 private keys', async () => {
 
-    const keys = [
-      {key: '6b9027372deb53f4ae973a5614d8a57024adf33126ece6b587d9e08ba901c0d2'},
-      {key: '993130d3dd4de71254a94a47fdacb1c9f90dd33be8ad06b687bd95f073514a97'}
-    ];
+    const keys = [];
+
+    for(let index = 0;index < 2;index++){
+      const seed = bip39.generateMnemonic();
+      let hdwallet = hdkey.fromMasterSeed(seed);
+      const extendedPrivKey = hdwallet.privateExtendedKey();
+      const privateKey = hdkey.fromExtendedKey(extendedPrivKey).getWallet().getPrivateKey().toString('hex');
+      keys.push({key: privateKey})
+    }
 
     ctx.keys.push(...keys);
 
@@ -104,6 +109,20 @@ module.exports = (ctx) => {
 
       expect(key).to.not.eq(null);
     }
+  });
+
+  it('send some eth to created address', async ()=>{
+
+    const keyA = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
+      return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
+    }).value();
+
+    const accounts = await ctx.web3.eth.getAccounts();
+    const account = ctx.web3.eth.accounts.privateKeyToAccount(keyA);
+    const address = account.address.toLowerCase();
+
+    let tx = await ctx.web3.eth.sendTransaction({from: accounts[0], to: address, value: ctx.web3.utils.toHex(Math.pow(10, 17) + '')});
+    expect(tx.blockNumber).to.be.gt(0);
   });
 
   it('create transaction for eth', async () => {

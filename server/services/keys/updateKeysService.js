@@ -56,6 +56,9 @@ module.exports = async (req, res) => {
     let key = await dbInstance.models.Keys.findOne({
       where: {
         address: operation.address
+      },
+      include: {
+        model: dbInstance.models.PubKeys
       }
     });
 
@@ -93,30 +96,76 @@ module.exports = async (req, res) => {
       });
     }
 
-    let pubKeysRecords = (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)).map(deriveIndex => {
-      const pubKeys = _.chain(plugins.plugins).toPairs().transform((result, pair) => {
-        result.push({
-          blockchain: pair[0],
-          pubKey: new pair[1](config.network).getPublicKey(key.privateKey, deriveIndex)
-        });
-      }, []).value();
+    if (operation.stageChild || operation.incrementChild || operation.pubKeys) {
 
-      return {
-        index: deriveIndex,
-        pubKeys: pubKeys
-      };
-    });
+      if (operation.pubKeys) {
 
-    await dbInstance.models.PubKeys.destroy({where: {KeyAddress: key.address}});
+        let maxIndex = _.chain(key.PubKeys)
+          .map(pubkey => pubkey.index)
+          .max()
+          .value();
 
-    for (let pubKeysRecord of pubKeysRecords)
-      for (let item of pubKeysRecord.pubKeys)
-        await dbInstance.models.PubKeys.create({
-          KeyAddress: key.address,
-          pubKey: item.pubKey,
-          blockchain: item.blockchain,
-          index: pubKeysRecord.index
-        });
+        if (maxIndex + 1 > operation.pubKeys) {
+          let count = await dbInstance.models.VirtualKeyPubKeys.count({
+            where: {
+
+              PubKeyId: {
+                $in: _.chain(key.PubKeys)
+                  .filter(pubkey => pubkey.index + 1 > operation.pubKeys)
+                  .map(pubkey => pubkey.id)
+                  .value()
+              }
+            }
+          });
+
+          if (count > 0)
+            return res.send(keyMessages.badParams); //todo write error
+        }
+
+      }
+
+
+      let createIndexes = _.chain(key.PubKeys)
+        .map(pubkey => pubkey.index)
+        .max()
+        .thru(max => max + 1 > key.pubKeysCount ? [] : key.isStageChild ? [key.pubKeysCount - 1] : _.range(max + 1, key.pubKeysCount + 1))
+        .value();
+
+      let pubKeysRecords = createIndexes.map(deriveIndex => {
+        const pubKeys = _.chain(plugins.plugins).toPairs().transform((result, pair) => {
+          result.push({
+            blockchain: pair[0],
+            pubKey: new pair[1](config.network).getPublicKey(key.privateKey, deriveIndex)
+          });
+        }, []).value();
+
+        return {
+          index: deriveIndex,
+          pubKeys: pubKeys
+        };
+      });
+
+
+      let deleteIndexes = _.chain(key.PubKeys)
+        .map(pubkey => pubkey.index)
+        .max()
+        .thru(max => key.isStageChild ? _.range(0, key.pubKeysCount - 2) : (operation.pubKeys > max + 1 ? [] : _.range(operation.pubKeys, max + 1)))
+        .value();
+
+      if (deleteIndexes.length)
+        await dbInstance.models.PubKeys.destroy({where: {KeyAddress: key.address, index: {$in: deleteIndexes}}});
+
+      for (let pubKeysRecord of pubKeysRecords)
+        for (let item of pubKeysRecord.pubKeys)
+          await dbInstance.models.PubKeys.create({
+            KeyAddress: key.address,
+            pubKey: item.pubKey,
+            blockchain: item.blockchain,
+            index: pubKeysRecord.index
+          });
+
+    }
+
 
     if (operation.share && operation.clientId && operation.clientId !== req.client.clientId) {
 
@@ -152,4 +201,5 @@ module.exports = async (req, res) => {
 
 
   return res.send(genericMessages.success);
-};
+}
+;

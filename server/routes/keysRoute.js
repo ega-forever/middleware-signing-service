@@ -6,6 +6,7 @@
 
 const setKeysService = require('../services/keys/setKeysService'),
   deleteKeysService = require('../services/keys/deleteKeysService'),
+  setVirtualKeysService = require('../services/keys/setVirtualKeysService'),
   getKeysService = require('../services/keys/getKeysService'),
   logActionMiddleware = require('../middleware/logActionMiddleware'),
   updateKeysService = require('../services/keys/updateKeysService'),
@@ -16,6 +17,8 @@ module.exports = (router, wrapper)=>{
   router.get('/', clientValidationMiddleware, logActionMiddleware, wrapper(getKeysService));
 
   router.post('/', clientValidationMiddleware, logActionMiddleware, wrapper(setKeysService));
+
+  router.post('/virtual', clientValidationMiddleware, logActionMiddleware, wrapper(setVirtualKeysService));
 
   router.put('/', clientValidationMiddleware, logActionMiddleware, wrapper(updateKeysService));
 

@@ -28,6 +28,7 @@ const init = async () => {
   app.use(express.static('dist'));
 
   let dbInstance = dbController.get();
+  await dbController.runMigrations();
   await dbInstance.sync();
   await models(dbInstance);
   await plugins.sync();

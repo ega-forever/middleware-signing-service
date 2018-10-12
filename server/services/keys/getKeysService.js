@@ -26,8 +26,13 @@ module.exports = async (req, res) => {
     },
     include: [{
       model: dbInstance.models.PubKeys
-    }]
+    },
+      {
+        model: dbInstance.models.VirtualKeyPubKeys,
+        include: [{model: dbInstance.models.PubKeys}]
+      }]
   });
+
 
   keys = _.chain(permissions).groupBy('KeyAddress').toPairs().map(pair => {
 
@@ -41,6 +46,21 @@ module.exports = async (req, res) => {
     const indexes = isOwner ? (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)) :
       (key.isStageChild ? [key.pubKeysCount - 1] : permissions.map(permission => permission.deriveIndex));
 
+    if(key.VirtualKeyPubKeys.length){
+      const pubKeys = key.VirtualKeyPubKeys.map(item=>({
+        [item.PubKey.blockchain]: item.PubKey.pubKey,
+        index: item.PubKey.index
+      }));
+
+      return {
+        address: key.address,
+        pubKeys: pubKeys,
+        default: key.default,
+        shared: !isOwner,
+        info: key.info
+      };
+
+    }
 
     const pubKeys = _.chain(key.PubKeys)
       .filter(key => indexes.includes(key.index))

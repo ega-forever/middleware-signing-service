@@ -23,9 +23,21 @@ module.exports = async (sequelize) => {
   sequelize.models.Clients.hasMany(sequelize.models.Permissions, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
   sequelize.models.Keys.hasMany(sequelize.models.Permissions, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
   sequelize.models.Keys.hasMany(sequelize.models.PubKeys, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
-  sequelize.models.Permissions.belongsTo(sequelize.models.Clients, {foreignKey: { allowNull: false }});
-  sequelize.models.Permissions.belongsTo(sequelize.models.Keys, {foreignKey: { allowNull: false }});
-  sequelize.models.PubKeys.belongsTo(sequelize.models.Keys, {foreignKey: { allowNull: false }});
+  sequelize.models.Permissions.belongsTo(sequelize.models.Clients, {foreignKey: {allowNull: false}});
+  sequelize.models.Permissions.belongsTo(sequelize.models.Keys, {foreignKey: {allowNull: false}});
+  sequelize.models.PubKeys.belongsTo(sequelize.models.Keys, {foreignKey: {allowNull: false}});
+
+  sequelize.models.VirtualKeyPubKeys.belongsTo(sequelize.models.PubKeys, {
+    foreignKey: {allowNull: false},
+    onDelete: 'CASCADE'
+  });
+  sequelize.models.VirtualKeyPubKeys.belongsTo(sequelize.models.Keys, {
+    foreignKey: {allowNull: false},
+    onDelete: 'CASCADE'
+  });
+
+  sequelize.models.Keys.hasMany(sequelize.models.VirtualKeyPubKeys, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+
 
   await sequelize.sync();
 

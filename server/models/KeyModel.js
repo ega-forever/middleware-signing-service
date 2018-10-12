@@ -39,6 +39,11 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: false
     },
+    isVirtual: {
+      type: Sequelize.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     default: {
       type: Sequelize.BOOLEAN,
       allowNull: false,

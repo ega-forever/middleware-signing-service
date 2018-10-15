@@ -27,11 +27,18 @@ module.exports = async (req, res) => {
   let keys = req.body.signers ? await dbInstance.models.Keys.findAll({
       where: {
         address: {
-          $in: _.intersection(permissions.map(permission => permission.KeyAddress.toLowerCase()), req.body.signers.map(signers => signers.toLowerCase()))
+          $in: _.intersection(permissions.map(permission => permission.KeyAddress), req.body.signers.map(signers => signers))
         }
       }
     }) :
-    [await dbInstance.models.Keys.findOne({where: {clientId: req.client.clientId, default: true}})];
+    [await dbInstance.models.Keys.findOne({
+      where: {
+        address: {
+          $in: permissions.map(permission => permission.KeyAddress)
+        },
+        default: true
+      }
+    })];
 
   if (!_.compact(keys).length)
     return res.send(signMessages.wrongKey);
@@ -77,6 +84,20 @@ module.exports = async (req, res) => {
     })
       .value();
   }
+
+  if(_.find(keys, {virtual: true}))
+    keys = await Promise.map(keys, async key=>{
+      if(!key.isVirtual)
+        return key;
+
+      let virtuals = await dbInstance.models.VirtualKeyPubKeys.findAll({
+        where: {
+          KeyAddress: key.address
+        }
+      });
+
+
+    });
 
   let tx = await plugin.sign(keys, req.body.payload, req.body.options);
 

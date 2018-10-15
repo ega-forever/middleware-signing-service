@@ -4,9 +4,6 @@
  * @author Egor Zuev <zyev.egor@gmail.com>
  */
 
-const Sequelize = require('sequelize');
-
-
 /**
  * @model keyModel
  * @description  sequilize key model. Represents the registered keys of the clients

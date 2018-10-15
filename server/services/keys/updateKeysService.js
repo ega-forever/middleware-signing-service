@@ -38,7 +38,8 @@ module.exports = async (req, res) => {
           .map(permission => permission.KeyAddress)
           .filter(address => permissionAddresses.includes(address))
           .value()
-      }
+      },
+      isVirtual: false
     }
   });
 
@@ -171,20 +172,43 @@ module.exports = async (req, res) => {
 
       const client = await dbInstance.models.Clients.findOne({where: {clientId: operation.clientId}});
 
-      if (client)
+      let excitingPermissions = await dbInstance.models.Permissions.findAll({
+        where: {
+          ClientId: client.id,
+          KeyAddress: key.address
+        }
+      });
+
+      if (!operation.children)
+        operation.children = [];
+
+
+      let addKeyIndexes = _.chain(0)
+        .range(key.pubKeysCount + 1)
+        .filter(index => operation.children.length ? operation.children.includes(index) : false)
+        .reject(index => _.find(excitingPermissions, {deriveIndex: index}))
+        .value();
+
+
+      let removeKeyIndexes = _.chain(0)
+        .range(key.pubKeysCount + 1)
+        .reject(index => operation.children.length ? operation.children.includes(index) : false)
+        .filter(index => _.find(excitingPermissions, {deriveIndex: index}))
+        .value();
+
+      if (client && removeKeyIndexes.length)
         await dbInstance.models.Permissions.destroy({
           where: {
             ClientId: client.id,
-            KeyAddress: key.address
+            KeyAddress: key.address,
+            deriveIndex: {
+              $in: removeKeyIndexes
+            }
           }
         });
 
-
-      if (!operation.children)
-        operation.children = pubKeysRecords.map(item => item.index);
-
-      if (client)
-        for (let index of operation.children)
+      if (client && addKeyIndexes.length)
+        for (let index of addKeyIndexes)
           await dbInstance.models.Permissions.create({
             ClientId: client.id,
             owner: false,
@@ -201,5 +225,4 @@ module.exports = async (req, res) => {
 
 
   return res.send(genericMessages.success);
-}
-;
+};

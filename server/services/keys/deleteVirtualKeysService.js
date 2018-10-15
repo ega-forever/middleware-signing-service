@@ -52,7 +52,7 @@ module.exports = async (req, res) => {
       }
     });
 
-    if(isVirtual)
+    if(!isVirtual)
       continue;
 
     await dbInstance.models.Keys.destroy({
@@ -67,7 +67,8 @@ module.exports = async (req, res) => {
       }
     });
 
-    await dbInstance.models.PubKeys.destroy({
+
+    await dbInstance.models.VirtualKeyPubKeys.destroy({
       where: {
         KeyAddress: group.address
       }

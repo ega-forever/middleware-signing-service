@@ -63,7 +63,8 @@ module.exports = async (req, res) => {
       await dbInstance.models.Keys.create({
         address: multisigAddress,
         isVirtual: true,
-        privateKey: scriptPubKey.toString('hex')
+        privateKey: scriptPubKey.toString('hex'),
+        info: _.isString(operation.info) ? operation.info : ''
       });
 
 

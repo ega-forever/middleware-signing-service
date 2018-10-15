@@ -654,6 +654,405 @@ module.exports = (ctx) => {
     expect(pushedTx).to.not.eq(null);
   });
 
+  it('create virtual key and generate some coins for multisig again (two clients, 3 keys)', async () => {
+
+    const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
+    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, ctx.sharedKey.pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
+
+
+    const virtualKeyRequest = await request({
+      uri: 'http://localhost:8080/keys/virtual',
+      method: 'POST',
+      json: {
+        multisig: true,
+        required: 2,
+        blockchain: 'btc',
+        info: 'btc_multisig_key',
+        keys: [
+          {address: keys[0].address, index: 0},
+          {address: keys[0].address, index: 1},
+          {address: ctx.sharedKey.address, index: 0}
+        ]
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(virtualKeyRequest.status).to.eq(1);
+
+
+    const keys2 = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+
+    let multiKey = _.find(keys2, {info: 'btc_multisig_key'});
+
+
+    const redeemScript = bitcoin.script.multisig.output.encode(2, pubKeys); // 2 of 3
+    const scriptPubKey = bitcoin.script.scriptHash.output.encode(bitcoin.crypto.hash160(redeemScript));
+    const multisigAddress = bitcoin.address.fromOutputScript(scriptPubKey, bitcoin.networks.testnet);
+
+    expect(multiKey.address).to.eq(multisigAddress);
+
+    const regtestMultiSig = bcoin.primitives.Address.fromOptions(multisigAddress, Network.get('testnet')).toBase58(Network.get('regtest'));
+    const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
+
+    let coins = await client.execute('getcoinsbyaddress', [addressRegtest]);
+    coins = _.chain(coins).sortBy('height').take(20).value();
+
+    const mtx = new bcoin.primitives.MTX();
+
+    for (let index = 0; index < coins.length; index++) {
+      const coin = bcoin.primitives.Coin.fromJSON(coins[index]);
+      mtx.addCoin(coin);
+    }
+
+    const value = _.chain(coins).map(coin => coin.value).sort('height').take(20).sum().value() - 5000;
+
+    mtx.addOutput({
+      address: regtestMultiSig,
+      value: value
+    });
+
+    mtx.sign(new keyring(key.d.toBuffer(32)));
+
+    const tx = mtx.toTX();
+    const txHash = tx.txid();
+    const rawTx = tx.toRaw().toString('hex');
+    const sendTxResult = await client.execute('sendrawtransaction', [rawTx]);
+    expect(txHash).to.eq(sendTxResult);
+
+    await client.execute('generatetoaddress', [10, addressRegtest]);
+  });
+
+  it('create multisig transaction and sign it with virtual key', async () => {
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    let virtualKey = _.find(keys, {virtual: true});
+
+
+    const pubKeys = virtualKey.pubKeys.map(pubKey => Buffer.from(pubKey.btc, 'hex'));
+
+    const redeemScript = bitcoin.script.multisig.output.encode(virtualKey.required, pubKeys); // 2 of 3
+    const regtestMultiSig = bcoin.primitives.Address.fromOptions(virtualKey.address, Network.get('testnet')).toBase58(Network.get('regtest'));
+
+    const seed = bip39.mnemonicToSeed(ctx.keys[0]);
+
+    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+    const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
+    const addressTestnet = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('testnet'));
+
+    let coins = await client.execute('getcoinsbyaddress', [regtestMultiSig]);
+    coins = _.sortBy(coins, 'height');
+
+    const txb = new bitcoin.TransactionBuilder(bitcoin.networks.testnet);
+
+    txb.addInput(coins[0].hash, coins[0].index);
+    txb.addOutput(addressTestnet, coins[0].value - 5000);
+    const incompleteTx = txb.buildIncomplete().toHex();
+
+    const reply = await request({
+      uri: 'http://localhost:8080/tx/btc',
+      method: 'POST',
+      json: {
+        signers: [virtualKey.address],
+        payload: {
+          incompleteTx: incompleteTx,
+          redeemScript: redeemScript
+        }
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+
+    const sendTxResult = await client.execute('sendrawtransaction', [reply.rawTx]);
+    await client.execute('generatetoaddress', [1, addressRegtest]);
+    const pushedTx = await client.execute('getrawtransaction', [sendTxResult, false]);
+    expect(pushedTx).to.not.eq(null);
+  });
+
+  it('remove virtual key', async () => {
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    let virtualKeyAddress = _.find(keys, {virtual: true}).address;
+
+
+    const virtualKeyRequest = await request({
+      uri: 'http://localhost:8080/keys/virtual',
+      method: 'DELETE',
+      json: {
+        address: virtualKeyAddress
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(virtualKeyRequest.status).to.eq(1);
+
+
+    const keys2 = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(_.find(keys2, {address: virtualKeyAddress})).to.eq(undefined);
+  });
+
+
+  it('create shared virtual key and generate some coins for multisig again (two clients, 3 keys)', async () => {
+
+    const seed = bip39.mnemonicToSeed(ctx.keys[0].key);
+    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+
+    let keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, keys[1].pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
+
+
+    const virtualKeyRequest = await request({
+      uri: 'http://localhost:8080/keys/virtual',
+      method: 'POST',
+      json: {
+        multisig: true,
+        required: 2,
+        blockchain: 'btc',
+        info: 'btc_multisig_key2',
+        keys: [
+          {address: keys[0].address, index: 0},
+          {address: keys[0].address, index: 1},
+          {address: keys[1].address, index: 0}
+        ]
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(virtualKeyRequest.status).to.eq(1);
+
+
+    keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    const virtualKey = _.find(keys, {info: 'btc_multisig_key2'});
+
+    const shareRequest = await request({
+      uri: 'http://localhost:8080/keys/virtual',
+      method: 'PUT',
+      json: {
+        address: virtualKey.address,
+        share: true,
+        clientId: ctx.client2.clientId
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(shareRequest.status).to.eq(1);
+
+
+    const keys2 = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client2.clientId
+      }
+    });
+
+
+    let multiKey = _.find(keys2, {info: 'btc_multisig_key2'});
+
+
+    const redeemScript = bitcoin.script.multisig.output.encode(2, pubKeys); // 2 of 3
+    const scriptPubKey = bitcoin.script.scriptHash.output.encode(bitcoin.crypto.hash160(redeemScript));
+    const multisigAddress = bitcoin.address.fromOutputScript(scriptPubKey, bitcoin.networks.testnet);
+
+    expect(multiKey.address).to.eq(multisigAddress);
+
+    const regtestMultiSig = bcoin.primitives.Address.fromOptions(multisigAddress, Network.get('testnet')).toBase58(Network.get('regtest'));
+    const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
+
+    let coins = await client.execute('getcoinsbyaddress', [addressRegtest]);
+    coins = _.chain(coins).sortBy('height').take(20).value();
+
+    const mtx = new bcoin.primitives.MTX();
+
+    for (let index = 0; index < coins.length; index++) {
+      const coin = bcoin.primitives.Coin.fromJSON(coins[index]);
+      mtx.addCoin(coin);
+    }
+
+    const value = _.chain(coins).map(coin => coin.value).sort('height').take(20).sum().value() - 5000;
+
+    mtx.addOutput({
+      address: regtestMultiSig,
+      value: value
+    });
+
+    mtx.sign(new keyring(key.d.toBuffer(32)));
+
+    const tx = mtx.toTX();
+    const txHash = tx.txid();
+    const rawTx = tx.toRaw().toString('hex');
+    const sendTxResult = await client.execute('sendrawtransaction', [rawTx]);
+    expect(txHash).to.eq(sendTxResult);
+
+    await client.execute('generatetoaddress', [10, addressRegtest]);
+  });
+
+  it('create multisig transaction and sign it with virtual key', async () => {
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client2.clientId
+      }
+    });
+
+    let virtualKey = _.find(keys, {virtual: true});
+
+
+    const pubKeys = virtualKey.pubKeys.map(pubKey => Buffer.from(pubKey.btc, 'hex'));
+
+    const redeemScript = bitcoin.script.multisig.output.encode(virtualKey.required, pubKeys); // 2 of 3
+    const regtestMultiSig = bcoin.primitives.Address.fromOptions(virtualKey.address, Network.get('testnet')).toBase58(Network.get('regtest'));
+
+    const seed = bip39.mnemonicToSeed(ctx.keys[0]);
+
+    const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+    const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
+    const addressTestnet = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('testnet'));
+
+    let coins = await client.execute('getcoinsbyaddress', [regtestMultiSig]);
+    coins = _.sortBy(coins, 'height');
+
+    const txb = new bitcoin.TransactionBuilder(bitcoin.networks.testnet);
+
+    txb.addInput(coins[0].hash, coins[0].index);
+    txb.addOutput(addressTestnet, coins[0].value - 5000);
+    const incompleteTx = txb.buildIncomplete().toHex();
+
+    const reply = await request({
+      uri: 'http://localhost:8080/tx/btc',
+      method: 'POST',
+      json: {
+        signers: [virtualKey.address],
+        payload: {
+          incompleteTx: incompleteTx,
+          redeemScript: redeemScript
+        }
+      },
+      headers: {
+        client_id: ctx.client2.clientId
+      }
+    });
+
+
+    const sendTxResult = await client.execute('sendrawtransaction', [reply.rawTx]);
+    await client.execute('generatetoaddress', [1, addressRegtest]);
+    const pushedTx = await client.execute('getrawtransaction', [sendTxResult, false]);
+    expect(pushedTx).to.not.eq(null);
+  });
+
+  it('remove virtual key', async () => {
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    let virtualKeyAddress = _.find(keys, {virtual: true}).address;
+
+
+    const virtualKeyRequest = await request({
+      uri: 'http://localhost:8080/keys/virtual',
+      method: 'DELETE',
+      json: {
+        address: virtualKeyAddress
+      },
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(virtualKeyRequest.status).to.eq(1);
+
+
+    const keys2 = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(_.find(keys2, {address: virtualKeyAddress})).to.eq(undefined);
+  });
+
+
   it('check keys staging', async () => {
 
     const keys = await request({
@@ -665,7 +1064,7 @@ module.exports = (ctx) => {
       }
     });
 
-    expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
+    expect(_.filter(keys, {shared: false, virtual: false}).length).to.eq(ctx.keys.length);
 
     let stageKey = _.find(keys, key => key.pubKeys.length > 1);
 
@@ -731,7 +1130,7 @@ module.exports = (ctx) => {
       }
     });
 
-    expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
+    expect(_.filter(keys, {shared: false, virtual: false}).length).to.eq(ctx.keys.length);
 
     let stageKey = _.find(keys, key => key.pubKeys.length === 1);
 

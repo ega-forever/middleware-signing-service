@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
 
   for (let operation of req.body) {
 
-    if(operation.multisig){
+    if (operation.multisig) {
 
 
       let pubKeys = await dbInstance.models.PubKeys.findAll({
@@ -52,7 +52,10 @@ module.exports = async (req, res) => {
         }]
       });
 
-      const sortedKeys = operation.keys.map(key => _.find(pubKeys, {KeyAddress: key.address}));
+      const sortedKeys = operation.keys.map(key => _.find(pubKeys, {
+        KeyAddress: key.address,
+        index: parseInt(key.index || 0)
+      }));
 
       const rawPubKeys = _.chain(sortedKeys).map(item => Buffer.from(item.pubKey, 'hex')).value();
       const redeemScript = bitcoin.script.multisig.output.encode(operation.required || rawPubKeys.length, rawPubKeys);
@@ -64,14 +67,16 @@ module.exports = async (req, res) => {
         address: multisigAddress,
         isVirtual: true,
         privateKey: scriptPubKey.toString('hex'),
-        info: _.isString(operation.info) ? operation.info : ''
+        info: _.isString(operation.info) ? operation.info : '',
+        requiredCount: operation.required || rawPubKeys.length
       });
 
 
-      for (let key of sortedKeys)
+      for (let index = 0; index < sortedKeys.length; index++)
         await dbInstance.models.VirtualKeyPubKeys.create({
-          PubKeyId: key.id,
-          KeyAddress: multisigAddress
+          PubKeyId: sortedKeys[index].id,
+          KeyAddress: multisigAddress,
+          orderIndex: index
         });
 
 

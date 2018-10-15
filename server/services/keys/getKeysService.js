@@ -57,7 +57,9 @@ module.exports = async (req, res) => {
         pubKeys: pubKeys,
         default: key.default,
         shared: !isOwner,
-        info: key.info
+        info: key.info,
+        virtual: true,
+        required: key.requiredCount
       };
 
     }
@@ -79,7 +81,8 @@ module.exports = async (req, res) => {
       pubKeys: pubKeys,
       default: key.default,
       shared: !isOwner,
-      info: key.info
+      info: key.info,
+      virtual: false
     };
 
   }).value();

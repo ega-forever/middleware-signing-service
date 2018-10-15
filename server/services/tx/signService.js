@@ -85,19 +85,45 @@ module.exports = async (req, res) => {
       .value();
   }
 
-  if(_.find(keys, {virtual: true}))
-    keys = await Promise.map(keys, async key=>{
-      if(!key.isVirtual)
-        return key;
+
+  if(_.find(keys, {isVirtual: true})) {
+
+    let virtualKeys = _.filter(keys, {isVirtual: true})
+
+    for(let virtualKey of virtualKeys){
 
       let virtuals = await dbInstance.models.VirtualKeyPubKeys.findAll({
         where: {
-          KeyAddress: key.address
-        }
+          KeyAddress: virtualKey.address
+        },
+        include: [
+          {
+            model: dbInstance.models.PubKeys,
+            include: [
+              {
+                model: dbInstance.models.Keys
+              }
+            ]
+          }
+        ]
       });
 
 
-    });
+      for(let virtual of virtuals){
+
+        if(!_.get(req.body.options, 'useKeys'))
+          _.set(req.body, 'options.useKeys', {});
+
+        (req.body.options.useKeys[virtual.PubKey.Key.address] || (req.body.options.useKeys[virtual.PubKey.Key.address] = [])).push(virtual.PubKey.index);
+        let foundKey = _.find(keys, {address: virtual.PubKey.Key.address});
+        if(!foundKey)
+          keys.push(virtual.PubKey.Key);
+      }
+
+      _.pull(keys, virtualKey);
+
+    }
+  }
 
   let tx = await plugin.sign(keys, req.body.payload, req.body.options);
 

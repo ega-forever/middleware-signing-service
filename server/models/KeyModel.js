@@ -44,6 +44,10 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: false
     },
+    requiredCount: {
+      type: Sequelize.INTEGER,
+      allowNull: true
+    },
     default: {
       type: Sequelize.BOOLEAN,
       allowNull: false,

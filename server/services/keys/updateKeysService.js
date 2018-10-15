@@ -150,7 +150,7 @@ module.exports = async (req, res) => {
       let deleteIndexes = _.chain(key.PubKeys)
         .map(pubkey => pubkey.index)
         .max()
-        .thru(max => key.isStageChild ? _.range(0, key.pubKeysCount - 2) : (operation.pubKeys > max + 1 ? [] : _.range(operation.pubKeys, max + 1)))
+        .thru(max => key.isStageChild ? _.range(0, key.pubKeysCount) : (operation.pubKeys > max + 1 ? [] : _.range(operation.pubKeys, max + 1)))
         .value();
 
       if (deleteIndexes.length)

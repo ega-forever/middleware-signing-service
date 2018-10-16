@@ -76,7 +76,8 @@ module.exports = (ctx) => {
 
     expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
 
-    for (let item of ctx.keys) {
+    let clientCreatedKeys = _.reject(ctx.keys, key=> key.info && key.info.includes('generated'));
+    for (let item of clientCreatedKeys) {
 
       if (item.key.length <= 66) {
         const privateKey = item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
@@ -113,7 +114,8 @@ module.exports = (ctx) => {
 
   it('send some eth to created address', async ()=>{
 
-    const keyA = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
+    const keyA = _.chain(ctx.keys)
+      .find(item => item.key && item.key.length <= 66).thru(item => {
       return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
     }).value();
 
@@ -127,7 +129,9 @@ module.exports = (ctx) => {
 
   it('create transaction for eth', async () => {
 
-    const keyA = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
+
+    const keyA = _.chain(ctx.keys)
+      .find(item => item.key && item.key.length <= 66).thru(item => {
       return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
     }).value();
 
@@ -170,7 +174,8 @@ module.exports = (ctx) => {
 
   it('sign 2fa call', async () => {
 
-    const keyA = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
+    const keyA = _.chain(ctx.keys)
+      .find(item => item.key && item.key.length <= 66).thru(item => {
       return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
     }).value();
 

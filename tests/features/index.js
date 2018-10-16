@@ -175,6 +175,80 @@ module.exports = (ctx) => {
     }
   });
 
+  it('validate get single keys route (client one)', async () => {
+
+    const seed = bip39.mnemonicToSeed(ctx.keys[0].key);
+    let hdwallet = hdkey.fromMasterSeed(seed);
+    const extendedPrivKey = hdwallet.privateExtendedKey();
+    const privateKey = hdkey.fromExtendedKey(extendedPrivKey).getWallet().getPrivateKey();
+    const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+    const address = account.address.toLowerCase();
+
+    const key = await request({
+      uri: `http://localhost:8080/keys/${address}`,
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    for (let pubKey of key.pubKeys) {
+
+      const ethPubKey = hdwallet.derivePath(`m/44'/${ctx.derivePurpose.eth}'/0'/0/${pubKey.index}`).getWallet().getPublicKey().toString('hex');
+      const btcPuBkey = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath(`0/${pubKey.index}`).keyPair.getPublicKeyBuffer().toString('hex');
+      expect(pubKey.eth === ethPubKey).to.eq(true);
+      expect(pubKey.btc === btcPuBkey).to.eq(true);
+    }
+
+    expect(key).to.not.eq(null);
+
+  });
+
+  it('validate key generation on server side (client one)', async () => {
+
+    let toGenerate = _.chain(new Array(3)).fill(0)
+      .map((item, index) => ({
+        pubKeys: _.random(1 + index, 7),
+        info: `generated_${index}`
+      }))
+      .value();
+
+    ctx.keys.push(...toGenerate);
+
+    const reply = await request({
+      uri: 'http://localhost:8080/keys/generate',
+      method: 'POST',
+      json: toGenerate,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(reply.status).to.eq(1);
+
+    const keys = await request({
+      uri: 'http://localhost:8080/keys',
+      method: 'GET',
+      json: true,
+      headers: {
+        client_id: ctx.client.clientId
+      }
+    });
+
+    expect(keys.length).to.eq(ctx.keys.length);
+
+    let generatedKeys = _.filter(key => key.info.includes('generated'));
+
+    for (let generatedKey of generatedKeys) {
+      let generateOptions = _.find(toGenerate, {info: generatedKey.info});
+      expect(generatedKey.pubKeys.length).to.eq(generateOptions.pubKeys)
+    }
+
+
+  });
+
+
   it('validate get keys route (client two)', async () => {
 
     const keys = await request({
@@ -261,9 +335,9 @@ module.exports = (ctx) => {
 
   describe('eth', () => ethTest(ctx));
 
-  describe('nem', () => nemTest(ctx));
+/*  describe('nem', () => nemTest(ctx));
 
-  describe('waves', () => wavesTest(ctx));
+  describe('waves', () => wavesTest(ctx));*/
 
   after('kill environment', async () => {
     ctx.server.kill();

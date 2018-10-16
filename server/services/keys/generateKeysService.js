@@ -1,35 +1,30 @@
-const dbInstance = require('../../controllers/dbController').get(),
-  Web3 = require('web3'),
-  _ = require('lodash'),
-  web3 = new Web3();
+/**
+ * Copyright 2018, LaborX PTY
+ * Licensed under the AGPL Version 3 license.
+ * @author Egor Zuev <zyev.egor@gmail.com>
+ */
 
-module.exports = async (req, res) => {
+const _ = require('lodash'),
+  bip39 = require('bip39');
 
-  if (!req.body.key && !_.get(req.body, '0.key'))
-    return res.send({}); //todo add error
+/**
+ * @function
+ * @description generate and add new keys for client
+ * @param req - request object
+ * @param res - response object
+ * @param next - next callback
+ * @return {Promise<*>}
+ */
+module.exports = async (req, res, next) => {
 
-  if (req.body.key)
-    req.body = [req.body.key];
-
-  const client = await dbInstance.models.Clients.findOne({where: {clientId: req.clientId}});
-
-  if (!client)
-    return res.send({}); //todo add error
-
-  for (let key of req.body) {
-    const account = web3.eth.accounts.privateKeyToAccount(key.key);
-    await dbInstance.models.Keys.create({
-      privateKey: key.key,
-      address: account.address.toLowerCase(),
-      default: !!key.default
-    });
-
-    await dbInstance.models.ClientKeys.create({
-      clientId: req.clientId,
-      keyAddress: account.address.toLowerCase()
-    });
-  }
+  if (!_.isArray(req.body))
+    req.body = [req.body];
 
 
-  return res.send({status: 1});
+  req.body = req.body.map(item=>{
+    item.key = bip39.generateMnemonic();
+    return item;
+  });
+
+  next();
 };

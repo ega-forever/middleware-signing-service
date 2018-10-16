@@ -1,20 +1,20 @@
-import React, { Component } from "react";
-import "./app.css";
-import ReactImage from "./react.png";
+import React, { Component } from 'react';
+import './app.css';
+import ReactImage from './react.png';
 
 export default class App extends Component {
-  constructor(props) {
+  constructor (props) {
     super(props);
     this.state = { username: null };
   }
 
-  componentDidMount() {
-    fetch("/api/getUsername")
+  componentDidMount () {
+    fetch('/api/getUsername')
       .then(res => res.json())
       .then(user => this.setState({ username: user.username }));
   }
 
-  render() {
+  render () {
     return (
       <div>
         {this.state.username ? (

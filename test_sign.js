@@ -23,7 +23,7 @@ const init = async () => {
   //const pubKeys = _.chain(data).map(item => Buffer.from(item.pubKeys[0].btc, 'hex')).value();
   const pubKeys = _.chain(data).find({info: 'super_puper'}).get('pubKeys').map(item => Buffer.from(item.btc, 'hex')).value();
 
-  console.log(pubKeys)
+  console.log(pubKeys);
 
   const redeemScript = bitcoin.script.multisig.output.encode(2, pubKeys); // 2 of 3
   const scriptPubKey = bitcoin.script.scriptHash.output.encode(bitcoin.crypto.hash160(redeemScript));
@@ -64,7 +64,7 @@ const init = async () => {
 
   const reply2 = await new Promise(res => {
     request({
-      url: `https://testnet.blockexplorer.com/api/tx/send`,
+      url: 'https://testnet.blockexplorer.com/api/tx/send',
       method: 'POST',
       json: {
         rawtx: reply.rawTx

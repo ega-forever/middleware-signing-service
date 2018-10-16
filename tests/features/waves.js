@@ -25,7 +25,7 @@ module.exports = (ctx) => {
 
     const keys = [];
 
-    for(let index = 0;index < 2;index++){
+    for (let index = 0; index < 2; index++) {
       const seed = bip39.generateMnemonic();
       let hdwallet = hdkey.fromMasterSeed(seed);
       const extendedPrivKey = hdwallet.privateExtendedKey();
@@ -60,7 +60,9 @@ module.exports = (ctx) => {
 
     expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
 
-    for (let item of ctx.keys) {
+    let clientCreatedKeys = _.reject(ctx.keys, key => key.info && key.info.includes('generated'));
+
+    for (let item of clientCreatedKeys) {
 
       if (item.key.length <= 66) {
         let privateKey = item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
@@ -103,9 +105,10 @@ module.exports = (ctx) => {
 
   it('create transaction for waves', async () => {
 
-    let privateKey = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
-      return item.key.replace('0x', '');
-    }).value();
+    let privateKey = _.chain(ctx.keys)
+      .find(item => item.key && item.key.length <= 66).thru(item => {
+        return item.key.replace('0x', '');
+      }).value();
 
     const Waves = WavesAPI.create(WavesAPI.TESTNET_CONFIG);
     const keyPair = Waves.Seed.fromExistingPhrase(privateKey).keyPair;
@@ -123,9 +126,9 @@ module.exports = (ctx) => {
     };
 
     let name = _.chain(Waves.constants).toPairs()
-      .find(pair=>pair[0].includes('_TX') && pair[1] === txParams.type)
+      .find(pair => pair[0].includes('_TX') && pair[1] === txParams.type)
       .get(0)
-      .thru(item=> Waves.constants[`${item}_NAME`])
+      .thru(item => Waves.constants[`${item}_NAME`])
       .value();
 
     const account = web3.eth.accounts.privateKeyToAccount(`0x${privateKey}`);
@@ -155,7 +158,7 @@ module.exports = (ctx) => {
     expect(isValid2).to.eq(true);
 
     expect(reply.rawTx).to.include.all.keys(...Object.keys(signedTx));
-        expect(_.isEqual(_.omit(reply.rawTx, 'proofs'), _.omit(signedTx, 'proofs'))).to.eq(true);
+    expect(_.isEqual(_.omit(reply.rawTx, 'proofs'), _.omit(signedTx, 'proofs'))).to.eq(true);
   });
 
 

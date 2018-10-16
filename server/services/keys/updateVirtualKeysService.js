@@ -6,15 +6,12 @@
 
 const dbInstance = require('../../controllers/dbController').get(),
   genericMessages = require('../../factories/messages/genericMessages'),
-  extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
-  plugins = require('../../plugins'),
-  config = require('../../config'),
   keyMessages = require('../../factories/messages/keysMessages'),
   _ = require('lodash');
 
 /**
  * @function
- * @description update exciting private key
+ * @description update exciting virtual private key
  * @param req - request object
  * @param res - response object
  * @return {Promise<*>}

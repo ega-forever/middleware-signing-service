@@ -5,21 +5,14 @@
  */
 
 const dbInstance = require('../../controllers/dbController').get(),
-  Web3 = require('web3'),
   _ = require('lodash'),
   bitcoin = require('bitcoinjs-lib'),
-  genericMessages = require('../../factories/messages/genericMessages'),
   keyMessages = require('../../factories/messages/keysMessages'),
-  hdkey = require('ethereumjs-wallet/hdkey'),
-  plugins = require('../../plugins'),
-  config = require('../../config'),
-  extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
-  checkPrivateKey = require('../../utils/crypto/checkPrivateKey'),
-  web3 = new Web3();
+  genericMessages = require('../../factories/messages/genericMessages');
 
 /**
  * @function
- * @description add new keys for client
+ * @description add new virtual key for client
  * @param req - request object
  * @param res - response object
  * @return {Promise<*>}
@@ -29,12 +22,12 @@ module.exports = async (req, res) => {
   if (!_.isArray(req.body))
     req.body = [req.body];
 
-  /*let allKeysValid = _.chain(req.body).map(key => checkPrivateKey(key.key)).filter(eq => !eq).size().eq(0).value();//todo create validator
+  let allKeysValid = _.chain(req.body).reject(item => _.isArray(item.keys)).size().eq(0).value();//todo create validator
 
   if (!allKeysValid)
-    return res.send(keyMessages.badParams);*/
+    return res.send(keyMessages.badParams);
 
-  for (let operation of req.body) {
+  for (let operation of req.body) 
 
     if (operation.multisig) {
 
@@ -90,7 +83,7 @@ module.exports = async (req, res) => {
 
     }
 
-  }
+  
 
 
   return res.send(genericMessages.success);

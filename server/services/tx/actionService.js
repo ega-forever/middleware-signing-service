@@ -30,12 +30,12 @@ module.exports = async (req, res) => {
 
 
   let keys = req.body.signers ? await dbInstance.models.Keys.findAll({
-      where: {
-        address: {
-          $in: req.body.signers.map(signers => signers.toLowerCase())
-        }
+    where: {
+      address: {
+        $in: req.body.signers.map(signers => signers.toLowerCase())
       }
-    }) :
+    }
+  }) :
     [await dbInstance.models.Keys.findOne({where: {clientId: req.clientId, default: true}})];
 
   if (!_.compact(keys).length)

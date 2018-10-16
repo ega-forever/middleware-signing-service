@@ -7,8 +7,8 @@
 const Sequelize = require('sequelize');
 
 /**
- * @model keyModel
- * @description  sequilize key model. Represents the registered keys of the clients
+ * @model virtualKeyPubKeyModel
+ * @description  sequilize model for keeping references between virtual private key and its public keys
  * @param sequelize - the sequelize instance
  * @return {*}
  */

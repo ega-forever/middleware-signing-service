@@ -11,7 +11,7 @@ const dbInstance = require('../../controllers/dbController').get(),
 
 /**
  * @function
- * @description delete exciting client's private key
+ * @description delete exciting client's private virtual key
  * @param req - request object
  * @param res - response object
  * @return {Promise<*>}

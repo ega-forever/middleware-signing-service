@@ -101,7 +101,7 @@ const dataProvider = (type, resource, params) => {
     return Promise.resolve({data: accountList, total: accountList.length});
 
   if(resource === 'accounts' && type === GET_ONE) {
-   let account = _.find(accountList, {address: params.id});
+    let account = _.find(accountList, {address: params.id});
     return Promise.resolve({data: account});
   }
 

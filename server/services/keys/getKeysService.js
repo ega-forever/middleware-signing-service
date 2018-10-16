@@ -18,6 +18,9 @@ module.exports = async (req, res) => {
 
   let permissions = await req.client.getPermissions();
 
+  if(req.params.address)
+    permissions = _.filter(permissions, {KeyAddress: req.params.address});
+
   let keys = await dbInstance.models.Keys.findAll({
     where: {
       address: {
@@ -27,10 +30,10 @@ module.exports = async (req, res) => {
     include: [{
       model: dbInstance.models.PubKeys
     },
-      {
-        model: dbInstance.models.VirtualKeyPubKeys,
-        include: [{model: dbInstance.models.PubKeys}]
-      }]
+    {
+      model: dbInstance.models.VirtualKeyPubKeys,
+      include: [{model: dbInstance.models.PubKeys}]
+    }]
   });
 
 
@@ -85,7 +88,9 @@ module.exports = async (req, res) => {
       virtual: false
     };
 
-  }).value();
+  })
+    .thru(keys=> req.params.address ? _.get(keys, '0', {}) : keys)
+    .value();
 
   return res.send(keys);
 };

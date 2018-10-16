@@ -61,7 +61,9 @@ module.exports = (ctx) => {
 
     expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
 
-    for (let item of ctx.keys) {
+    let clientCreatedKeys = _.reject(ctx.keys, key => key.info && key.info.includes('generated'));
+
+    for (let item of clientCreatedKeys) {
 
       if (item.key.length <= 66) {
         let privateKey = item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
@@ -106,9 +108,10 @@ module.exports = (ctx) => {
 
   it('create transaction for nem', async () => {
 
-    let privateKey = _.chain(ctx.keys).find(item => item.key.length <= 66).thru(item => {
-      return item.key.replace('0x', '');
-    }).value();
+    let privateKey = _.chain(ctx.keys)
+      .find(item => item.key && item.key.length <= 66).thru(item => {
+        return item.key.replace('0x', '');
+      }).value();
 
     const account = web3.eth.accounts.privateKeyToAccount(`0x${privateKey}`);
     const address = account.address.toLowerCase();
@@ -142,7 +145,7 @@ module.exports = (ctx) => {
     });
 
     expect(reply.rawTx).to.include.all.keys(...Object.keys(signedTx));
-        expect(_.isEqual(reply.rawTx, signedTx)).to.eq(true);
+    expect(_.isEqual(reply.rawTx, signedTx)).to.eq(true);
   });
 
 };

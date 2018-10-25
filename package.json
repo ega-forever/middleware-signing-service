@@ -23,6 +23,7 @@
     "ethereumjs-wallet": "^0.6.2",
     "express": "^4.16.3",
     "lodash": "^4.17.10",
+    "middleware_auth_lib": "^1.0.0",
     "nem-sdk": "^1.6.7",
     "react": "^16.3.1",
     "react-admin": "^2.2.0",

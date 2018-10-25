@@ -30,12 +30,14 @@ class EthPlugin extends AbstractPlugin {
    * @param txParams - transaction params
    * @return {*}
    */
-  async sign (signers, txParams) {
+  async sign (signers, txParams, options = {}) {
 
     let privateKey = signers[0].privateKey;
 
     if (privateKey.length > 66)
-      privateKey = hdkey.fromExtendedKey(privateKey).getWallet().getPrivateKey().toString('hex');
+      privateKey = options.useKeys ? hdkey.fromExtendedKey(privateKey).derivePath(`m/44'/60'/0'/0/${Object.values(options.useKeys)[0][0]}`).getWallet().getPrivateKey().toString('hex') :
+        hdkey.fromExtendedKey(privateKey).getWallet().getPrivateKey().toString('hex');
+
 
     const privateKeyBuffer = Buffer.from(privateKey.replace('0x', ''), 'hex');
     const tx = new EthereumTx(txParams);
@@ -84,7 +86,7 @@ class EthPlugin extends AbstractPlugin {
    * @param payload - payload to sign
    * @return {*}
    */
-  async sign2faCall (signers, payload){
+  async sign2faCall (signers, payload, options = {}) {
 
     const secret = await Promise.promisify(crypto.randomBytes)(128);
     const pass = `0x${secret.toString('hex')}`;
@@ -111,11 +113,12 @@ class EthPlugin extends AbstractPlugin {
     let privateKey = signers[0].privateKey;
 
     if (privateKey.length > 66)
-      privateKey = hdkey.fromExtendedKey(privateKey).getWallet().getPrivateKey().toString('hex');
+      privateKey = options.useKeys ? hdkey.fromExtendedKey(privateKey).derivePath(`m/44'/60'/0'/0/${Object.values(options.useKeys)[0][0]}`).getWallet().getPrivateKey().toString('hex') :
+        hdkey.fromExtendedKey(privateKey).getWallet().getPrivateKey().toString('hex');
 
     const signed = web3.eth.accounts.sign(hash, privateKey);
 
-    const { v, r, s } = signed;
+    const {v, r, s} = signed;
     return {
       pass,
       v,

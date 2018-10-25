@@ -5,6 +5,9 @@
  */
 
 const dbInstance = require('../../controllers/dbController').get(),
+  hdkey = require('ethereumjs-wallet/hdkey'),
+  Wallet = require('ethereumjs-wallet'),
+  extractExtendedKey = require('../../utils/crypto/extractExtendedKey'),
   _ = require('lodash');
 
 /**
@@ -18,8 +21,13 @@ module.exports = async (req, res) => {
 
   let permissions = await req.client.getPermissions();
 
-  if(req.params.address)
-    permissions = _.filter(permissions, {KeyAddress: req.params.address});
+  if (req.params.address) {
+    if (!_.isArray(req.params.address))
+      req.params.address = [req.params.address];
+
+    permissions = _.filter(permissions, permission => req.params.address.includes(permission.KeyAddress));
+  }
+
 
   let keys = await dbInstance.models.Keys.findAll({
     where: {
@@ -30,10 +38,10 @@ module.exports = async (req, res) => {
     include: [{
       model: dbInstance.models.PubKeys
     },
-    {
-      model: dbInstance.models.VirtualKeyPubKeys,
-      include: [{model: dbInstance.models.PubKeys}]
-    }]
+      {
+        model: dbInstance.models.VirtualKeyPubKeys,
+        include: [{model: dbInstance.models.PubKeys}]
+      }]
   });
 
 
@@ -46,11 +54,14 @@ module.exports = async (req, res) => {
     let key = _.find(keys, {address: address});
     key = key.toJSON();
 
+    const extendedKey = extractExtendedKey(key.privateKey);
+    const rootPublicKey = extendedKey ? hdkey.fromExtendedKey(extendedKey).publicExtendedKey() : Wallet.fromPrivateKey(Buffer.from(key.privateKey.replace('0x', ''), 'hex')).getPublicKey().toString('hex');
+
     const indexes = isOwner ? (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)) :
       (key.isStageChild ? [key.pubKeysCount - 1] : permissions.map(permission => permission.deriveIndex));
 
-    if(key.VirtualKeyPubKeys.length){
-      const pubKeys = key.VirtualKeyPubKeys.map(item=>({
+    if (key.VirtualKeyPubKeys.length) {
+      const pubKeys = key.VirtualKeyPubKeys.map(item => ({
         [item.PubKey.blockchain]: item.PubKey.pubKey,
         index: item.PubKey.index
       }));
@@ -81,6 +92,7 @@ module.exports = async (req, res) => {
 
     return {
       address: key.address,
+      rootPubKey: rootPublicKey,
       pubKeys: pubKeys,
       default: key.default,
       shared: !isOwner,
@@ -89,7 +101,9 @@ module.exports = async (req, res) => {
     };
 
   })
-    .thru(keys=> req.params.address ? _.get(keys, '0', {}) : keys)
+    .thru(keys =>
+      req.params.address && !_.isArray(req.params.address) ? _.get(keys, '0', {}) : keys
+    )
     .value();
 
   return res.send(keys);

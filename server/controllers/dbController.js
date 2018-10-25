@@ -18,7 +18,7 @@ class Database {
     this.instance = new Sequelize('main', null, null, {
       dialect: 'sqlite',
       storage: config.dbPath,
-      logging: false
+      logging: !!config.sequelize.logging
     });
   }
 

@@ -6,9 +6,17 @@
 
 const signService = require('../services/tx/signService'),
   actionService = require('../services/tx/actionService'),
-  clientValidationMiddleware = require('../middleware/clientValidationMiddleware');
+  clientValidationMiddleware = require('../middleware/clientValidationMiddleware'),
+  config = require('../config'),
+  lib = require('middleware_auth_lib'),
+  auth = lib.authMiddleware({
+    serviceId: config.auth.serviceId,
+    provider: config.auth.provider
+  });
 
 module.exports = (router, wrapper)=>{
+
+  router.use(auth);
 
   router.post('/:blockchain/', clientValidationMiddleware, wrapper(signService));
 

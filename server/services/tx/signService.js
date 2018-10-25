@@ -24,13 +24,41 @@ module.exports = async (req, res) => {
 
   let permissions = await req.client.getPermissions();
 
-  let keys = req.body.signers ? await dbInstance.models.Keys.findAll({
-    where: {
-      address: {
-        $in: _.intersection(permissions.map(permission => permission.KeyAddress), req.body.signers.map(signers => signers))
+  if (req.body.signers) {
+
+    for (let index = 0; index < req.body.signers.length; index++) {
+      if (req.body.signers[index].length <= 42)
+        continue;
+
+      let pubKey = await dbInstance.models.PubKeys.findOne({
+        where: {
+          pubKey: req.body.signers[index]
+        }
+      });
+
+      if (!pubKey) {
+        _.pullAt(req.body.signers, index);
+        continue;
       }
+
+      req.body.signers[index] = pubKey.KeyAddress;
+
+      _.has(req.body, `options.useKeys.${req.body.signers[index]}`) ?
+        req.body.options.useKeys[req.body.signers[index]].push(pubKey.index) :
+        _.set(req.body, `options.useKeys.${req.body.signers[index]}`, [pubKey.index]);
     }
-  }) :
+
+    req.body.signers = _.uniq(req.body.signers);
+  }
+
+
+  let keys = req.body.signers ? await dbInstance.models.Keys.findAll({
+      where: {
+        address: {
+          $in: _.intersection(permissions.map(permission => permission.KeyAddress), req.body.signers.map(signers => signers))
+        }
+      }
+    }) :
     [await dbInstance.models.Keys.findOne({
       where: {
         address: {
@@ -56,7 +84,7 @@ module.exports = async (req, res) => {
   let sharedKeyPermissions = _.filter(permissions, permission => !permission.owner && req.body.signers.includes(permission.KeyAddress));
 
 
-  if (_.has(req.body, 'options.useKeys')) 
+  if (_.has(req.body, 'options.useKeys'))
     for (let address of Object.keys(req.body.options.useKeys)) {
 
       let keyPermissions = _.filter(permissions, {KeyAddress: address});
@@ -74,23 +102,21 @@ module.exports = async (req, res) => {
           _.pull(req.body.options.useKeys[address], index);
 
 
-    }
-  else if (sharedKeyPermissions.length) 
+    } else if (sharedKeyPermissions.length)
     _.chain(sharedKeyPermissions).groupBy('address')
       .toPairs().forEach(pair => {
-        if (!_.has(req.body, 'options.useKeys'))
-          _.set(req.body, 'options.useKeys', {});
-        req.body.options.useKeys[pair[0]] = pair[1].map(item => item.index);
-      })
+      if (!_.has(req.body, 'options.useKeys'))
+        _.set(req.body, 'options.useKeys', {});
+      req.body.options.useKeys[pair[0]] = pair[1].map(item => item.index);
+    })
       .value();
-  
 
 
-  if(_.find(keys, {isVirtual: true})) {
+  if (_.find(keys, {isVirtual: true})) {
 
     let virtualKeys = _.filter(keys, {isVirtual: true});
 
-    for(let virtualKey of virtualKeys){
+    for (let virtualKey of virtualKeys) {
 
       let virtuals = await dbInstance.models.VirtualKeyPubKeys.findAll({
         where: {
@@ -109,14 +135,14 @@ module.exports = async (req, res) => {
       });
 
 
-      for(let virtual of virtuals){
+      for (let virtual of virtuals) {
 
-        if(!_.get(req.body.options, 'useKeys'))
+        if (!_.get(req.body.options, 'useKeys'))
           _.set(req.body, 'options.useKeys', {});
 
         (req.body.options.useKeys[virtual.PubKey.Key.address] || (req.body.options.useKeys[virtual.PubKey.Key.address] = [])).push(virtual.PubKey.index);
         let foundKey = _.find(keys, {address: virtual.PubKey.Key.address});
-        if(!foundKey)
+        if (!foundKey)
           keys.push(virtual.PubKey.Key);
       }
 

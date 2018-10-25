@@ -23,5 +23,12 @@ module.exports = {
   network: process.env.NETWORK || 'regtest',
   rest: {
     port: parseInt(process.env.REST_PORT) || 8080
+  },
+  sequelize: {
+    logging: process.env.USE_DB_LOGGING ? parseInt(process.env.USE_DB_LOGGING) : 0
+  },
+  auth: {
+    serviceId:  process.env.AUTH_SERVICE_ID || 'middleware_signing_service',
+    provider: process.env.AUTH_PROVIDER_URI || 'http://localhost:8082'
   }
 };

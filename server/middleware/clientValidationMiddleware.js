@@ -5,6 +5,7 @@
  */
 
 const dbInstance = require('../controllers/dbController').get(),
+  _ = require('lodash'),
   genericMessages = require('../factories/messages/genericMessages');
 
 /**
@@ -15,10 +16,18 @@ const dbInstance = require('../controllers/dbController').get(),
  */
 module.exports = async (req, res, next) => {
 
-  req.client = await dbInstance.models.Clients.findOne({where: {clientId: req.get('client_id')}});
+  console.log(res.locals.data)
+
+  if (!_.has(res, 'locals.data.userId'))
+    return res.status(401).send(genericMessages.fail); //todo make error
+
+  req.client = await dbInstance.models.Clients.findOne({where: {clientId: res.locals.data.userId}});
 
   if (!req.client)
-    return res.status(401).send(genericMessages.fail); //todo make error
+    req.client = await dbInstance.models.Clients.create({
+      clientId: res.locals.data.userId,
+      clientName: _.get(res, 'locals.data.userName', res.locals.data.userId)
+    });
 
   next();
 };

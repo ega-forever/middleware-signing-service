@@ -7,7 +7,6 @@
 const dbInstance = require('../../controllers/dbController').get(),
   Web3 = require('web3'),
   _ = require('lodash'),
-  genericMessages = require('../../factories/messages/genericMessages'),
   keyMessages = require('../../factories/messages/keysMessages'),
   hdkey = require('ethereumjs-wallet/hdkey'),
   plugins = require('../../plugins'),
@@ -23,7 +22,7 @@ const dbInstance = require('../../controllers/dbController').get(),
  * @param res - response object
  * @return {Promise<*>}
  */
-module.exports = async (req, res) => {
+module.exports = async (req, res, next) => {
 
   if (!req.body.key && !_.get(req.body, '0.key'))
     return res.send(keyMessages.badParams);
@@ -46,6 +45,7 @@ module.exports = async (req, res) => {
     const privateKey = extendedKey ? hdkey.fromExtendedKey(extendedKey).getWallet().getPrivateKey() : key.key;
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+    key.address = account.address.toLowerCase();
 
     if (!_.isNumber(key.pubKeys))
       key.pubKeys = 1;
@@ -96,6 +96,7 @@ module.exports = async (req, res) => {
 
   }
 
+  req.params.address = req.body.map(key=>key.address);
 
-  return res.send(genericMessages.success);
+  next();
 };

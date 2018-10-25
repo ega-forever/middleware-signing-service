@@ -13,17 +13,25 @@ const setKeysService = require('../services/keys/setKeysService'),
   logActionMiddleware = require('../middleware/logActionMiddleware'),
   updateKeysService = require('../services/keys/updateKeysService'),
   updateVirtualKeysService = require('../services/keys/updateVirtualKeysService'),
-  clientValidationMiddleware = require('../middleware/clientValidationMiddleware');
+  clientValidationMiddleware = require('../middleware/clientValidationMiddleware'),
+  config = require('../config'),
+  lib = require('middleware_auth_lib'),
+  auth = lib.authMiddleware({
+    serviceId: config.auth.serviceId,
+    provider: config.auth.provider
+  });
 
-module.exports = (router, wrapper)=>{
+module.exports = (router, wrapper) => {
+
+  router.use(auth);
 
   router.get('/', clientValidationMiddleware, logActionMiddleware, wrapper(getKeysService));
 
   router.get('/:address', clientValidationMiddleware, logActionMiddleware, wrapper(getKeysService));
 
-  router.post('/', clientValidationMiddleware, logActionMiddleware, wrapper(setKeysService));
+  router.post('/', clientValidationMiddleware, logActionMiddleware, wrapper(setKeysService), wrapper(getKeysService));
 
-  router.post('/generate', clientValidationMiddleware, logActionMiddleware, generateKeysService, wrapper(setKeysService));
+  router.post('/generate', clientValidationMiddleware, logActionMiddleware, generateKeysService, wrapper(setKeysService), wrapper(getKeysService));
 
   router.post('/virtual', clientValidationMiddleware, logActionMiddleware, wrapper(setVirtualKeysService));
 

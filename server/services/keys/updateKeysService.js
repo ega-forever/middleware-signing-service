@@ -29,19 +29,17 @@ module.exports = async (req, res) => {
 
   let permissions = await req.client.getPermissions();
 
-  let permissionAddresses = _.chain(permissions).filter({owner: true}).map(permission => permission.KeyAddress).value();
+  let permissionKeyIds = _.chain(permissions).filter({owner: true}).map(permission => permission.KeyId).value();
 
   const keys = await dbInstance.models.Keys.findAll({
     where: {
-      address: {
-        $in: _.chain(permissions)
-          .map(permission => permission.KeyAddress)
-          .filter(address => permissionAddresses.includes(address))
-          .value()
+      id: {
+        $in: permissionKeyIds
       },
       isVirtual: false
     }
   });
+
 
   const badRule = _.find(req.body, operation => {
     let key = _.find(keys, {address: operation.address});
@@ -56,7 +54,8 @@ module.exports = async (req, res) => {
 
     let key = await dbInstance.models.Keys.findOne({
       where: {
-        address: operation.address
+        address: operation.address,
+        ClientId: req.client.id,
       },
       include: {
         model: dbInstance.models.PubKeys
@@ -80,9 +79,9 @@ module.exports = async (req, res) => {
     if (operation.default) {
 
 
-      let ownerAddresses = _.chain(permissions)
+      let ownerKeyIds = _.chain(permissions)
         .filter({owner: true})
-        .map(permission => permission.KeyAddress)
+        .map(permission => permission.KeyId)
         .value();
 
       key.default = true;
@@ -90,8 +89,8 @@ module.exports = async (req, res) => {
         default: false
       }, {
         where: {
-          address: {
-            $in: ownerAddresses
+          id: {
+            $in: ownerKeyIds
           }
         }
       });
@@ -109,7 +108,6 @@ module.exports = async (req, res) => {
         if (maxIndex + 1 > operation.pubKeys) {
           let count = await dbInstance.models.VirtualKeyPubKeys.count({
             where: {
-
               PubKeyId: {
                 $in: _.chain(key.PubKeys)
                   .filter(pubkey => pubkey.index + 1 > operation.pubKeys)
@@ -154,12 +152,12 @@ module.exports = async (req, res) => {
         .value();
 
       if (deleteIndexes.length)
-        await dbInstance.models.PubKeys.destroy({where: {KeyAddress: key.address, index: {$in: deleteIndexes}}});
+        await dbInstance.models.PubKeys.destroy({where: {KeyId: key.id, index: {$in: deleteIndexes}}});
 
       for (let pubKeysRecord of pubKeysRecords)
         for (let item of pubKeysRecord.pubKeys)
           await dbInstance.models.PubKeys.create({
-            KeyAddress: key.address,
+            KeyId: key.id,
             pubKey: item.pubKey,
             blockchain: item.blockchain,
             index: pubKeysRecord.index
@@ -175,7 +173,7 @@ module.exports = async (req, res) => {
       let excitingPermissions = await dbInstance.models.Permissions.findAll({
         where: {
           ClientId: client.id,
-          KeyAddress: key.address
+          KeyId: key.id
         }
       });
 
@@ -200,7 +198,7 @@ module.exports = async (req, res) => {
         await dbInstance.models.Permissions.destroy({
           where: {
             ClientId: client.id,
-            KeyAddress: key.address,
+            KeyId: key.id,
             deriveIndex: {
               $in: removeKeyIndexes
             }
@@ -213,7 +211,7 @@ module.exports = async (req, res) => {
             ClientId: client.id,
             owner: false,
             deriveIndex: index,
-            KeyAddress: key.address
+            KeyId: key.id
           });
 
 

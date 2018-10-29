@@ -33,7 +33,7 @@ module.exports = (router, wrapper) => {
 
   router.post('/generate', clientValidationMiddleware, logActionMiddleware, generateKeysService, wrapper(setKeysService), wrapper(getKeysService));
 
-  router.post('/virtual', clientValidationMiddleware, logActionMiddleware, wrapper(setVirtualKeysService));
+  router.post('/virtual', clientValidationMiddleware, logActionMiddleware, wrapper(setVirtualKeysService), wrapper(getKeysService));
 
   router.put('/', clientValidationMiddleware, logActionMiddleware, wrapper(updateKeysService));
 

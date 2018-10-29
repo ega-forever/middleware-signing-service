@@ -23,7 +23,13 @@ const keyring = require('bcoin/lib/primitives/keyring'),
   Promise = require('bluebird'),
   config = require('../../server/config'),
   BtcPlugin = require('../../server/plugins/BtcPlugin'),
-  spawn = require('child_process').spawn;
+  spawn = require('child_process').spawn,
+  lib = require('middleware_auth_lib'),
+  tokenLib = new lib.Token({
+    id: config.auth.serviceId,
+    provider: config.auth.provider,
+    secret: '123'
+  });
 
 module.exports = (ctx) => {
 
@@ -91,12 +97,14 @@ module.exports = (ctx) => {
     let coins = await client.execute('getcoinsbyaddress', [addressRegtest]);
     coins = _.sortBy(coins, 'height');
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -114,6 +122,7 @@ module.exports = (ctx) => {
     key.network = bitcoin.networks.testnet;
     txb.sign(0, key);
 
+
     const reply = await request({
       uri: 'http://localhost:8080/tx/btc',
       method: 'POST',
@@ -124,7 +133,7 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -137,17 +146,20 @@ module.exports = (ctx) => {
     expect(pushedTx).to.not.eq(null);
   });
 
+
   it('generate some coins for multisig (one client, 2 keys)', async () => {
 
     const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
     const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -213,15 +225,16 @@ module.exports = (ctx) => {
     const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
     const addressTestnet = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('testnet'));
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
-
 
     const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, keys[1].pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
 
@@ -276,9 +289,10 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
+
 
     for (let i = 0; i < txb.tx.ins.length; i++)
       for (let keyPair of _.take(keyPairs, 2))
@@ -299,12 +313,15 @@ module.exports = (ctx) => {
     const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
     const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
 
+    const token = await tokenLib.getUserToken(ctx.client2.address.toString(), [config.auth.serviceId]);
+
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client2.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -318,20 +335,21 @@ module.exports = (ctx) => {
         address: ctx.sharedKey.address,
         share: 1,
         children: [0, 1],
-        clientId: ctx.client.clientId
+        clientId: ctx.client.address.toString()
       },
       headers: {
-        client_id: ctx.client2.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
+    const token2 = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     const keys2 = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token2}`
       }
     });
 
@@ -396,12 +414,14 @@ module.exports = (ctx) => {
     const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
     const addressTestnet = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('testnet'));
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -459,7 +479,7 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -482,12 +502,14 @@ module.exports = (ctx) => {
     const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
     const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -552,12 +574,14 @@ module.exports = (ctx) => {
     const addressRegtest = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('regtest'));
     const addressTestnet = new keyring(key.d.toBuffer(32)).getAddress('base58', Network.get('testnet'));
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -614,10 +638,11 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
+    const token2 = await tokenLib.getUserToken(ctx.client2.address.toString(), [config.auth.serviceId]);
 
     const reply2 = await request({
       uri: 'http://localhost:8080/tx/btc',
@@ -636,7 +661,7 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client2.clientId
+        authorization: `Bearer ${token2}`
       }
     });
 
@@ -659,19 +684,21 @@ module.exports = (ctx) => {
     const seed = bip39.mnemonicToSeed(ctx.keys[1].key);
     const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
     const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, ctx.sharedKey.pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
 
 
-    const virtualKeyRequest = await request({
+    const keys2 = await request({
       uri: 'http://localhost:8080/keys/virtual',
       method: 'POST',
       json: {
@@ -686,22 +713,9 @@ module.exports = (ctx) => {
         ]
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
-
-    expect(virtualKeyRequest.status).to.eq(1);
-
-
-    const keys2 = await request({
-      uri: 'http://localhost:8080/keys',
-      method: 'GET',
-      json: true,
-      headers: {
-        client_id: ctx.client.clientId
-      }
-    });
-
 
     let multiKey = _.find(keys2, {info: 'btc_multisig_key'});
 
@@ -743,14 +757,16 @@ module.exports = (ctx) => {
     await client.execute('generatetoaddress', [10, addressRegtest]);
   });
 
-  it('create multisig transaction and sign it with virtual key', async () => {
+ it('create multisig transaction and sign it with virtual key', async () => {
+
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -777,6 +793,8 @@ module.exports = (ctx) => {
     txb.addOutput(addressTestnet, coins[0].value - 5000);
     const incompleteTx = txb.buildIncomplete().toHex();
 
+    const token2 = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const reply = await request({
       uri: 'http://localhost:8080/tx/btc',
       method: 'POST',
@@ -788,7 +806,7 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token2}`
       }
     });
 
@@ -801,12 +819,14 @@ module.exports = (ctx) => {
 
   it('remove virtual key', async () => {
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -820,7 +840,7 @@ module.exports = (ctx) => {
         address: virtualKeyAddress
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -832,32 +852,33 @@ module.exports = (ctx) => {
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
     expect(_.find(keys2, {address: virtualKeyAddress})).to.eq(undefined);
   });
 
-
   it('create shared virtual key and generate some coins for multisig again (two clients, 3 keys)', async () => {
 
     const seed = bip39.mnemonicToSeed(ctx.keys[0].key);
     const key = bitcoin.HDNode.fromSeedBuffer(seed).derivePath(`m/44'/${ctx.derivePurpose.btc}'/0'`).derivePath('0/0').keyPair;
+
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     let keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
     const pubKeys = _.chain([keys[0].pubKeys[0].btc, keys[0].pubKeys[1].btc, keys[1].pubKeys[0].btc]).map(pubKey => Buffer.from(pubKey, 'hex')).value();
 
 
-    const virtualKeyRequest = await request({
+    keys = await request({
       uri: 'http://localhost:8080/keys/virtual',
       method: 'POST',
       json: {
@@ -872,19 +893,7 @@ module.exports = (ctx) => {
         ]
       },
       headers: {
-        client_id: ctx.client.clientId
-      }
-    });
-
-    expect(virtualKeyRequest.status).to.eq(1);
-
-
-    keys = await request({
-      uri: 'http://localhost:8080/keys',
-      method: 'GET',
-      json: true,
-      headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -896,14 +905,16 @@ module.exports = (ctx) => {
       json: {
         address: virtualKey.address,
         share: true,
-        clientId: ctx.client2.clientId
+        clientId: ctx.client2.address.toString()
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
     expect(shareRequest.status).to.eq(1);
+
+    const token2 = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
 
     const keys2 = await request({
@@ -911,7 +922,7 @@ module.exports = (ctx) => {
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client2.clientId
+        authorization: `Bearer ${token2}`
       }
     });
 
@@ -958,12 +969,14 @@ module.exports = (ctx) => {
 
   it('create multisig transaction and sign it with virtual key', async () => {
 
+    const token = await tokenLib.getUserToken(ctx.client2.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client2.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1001,7 +1014,7 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client2.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1014,12 +1027,14 @@ module.exports = (ctx) => {
 
   it('remove virtual key', async () => {
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1033,7 +1048,7 @@ module.exports = (ctx) => {
         address: virtualKeyAddress
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1045,22 +1060,23 @@ module.exports = (ctx) => {
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
     expect(_.find(keys2, {address: virtualKeyAddress})).to.eq(undefined);
   });
 
-
   it('check keys staging', async () => {
+
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1077,7 +1093,7 @@ module.exports = (ctx) => {
         stageChild: 1
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1089,7 +1105,7 @@ module.exports = (ctx) => {
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1121,12 +1137,14 @@ module.exports = (ctx) => {
 
   it('increment staged key', async () => {
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1143,7 +1161,7 @@ module.exports = (ctx) => {
         incrementChild: 1
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1155,7 +1173,7 @@ module.exports = (ctx) => {
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1187,12 +1205,14 @@ module.exports = (ctx) => {
 
   it('generate some coins for accountB', async () => {
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1217,13 +1237,14 @@ module.exports = (ctx) => {
 
   it('generate some coins for accountA', async () => {
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1292,12 +1313,14 @@ module.exports = (ctx) => {
 
   it('create transaction for btc with staged key', async () => {
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1365,7 +1388,7 @@ module.exports = (ctx) => {
         }
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -1377,6 +1400,7 @@ module.exports = (ctx) => {
     const pushedTx = await client.execute('getrawtransaction', [sendTxResult, false]);
     expect(pushedTx).to.not.eq(null);
   });
+
 
 
   after('kill environment', async () => {

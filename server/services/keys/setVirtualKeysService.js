@@ -7,8 +7,7 @@
 const dbInstance = require('../../controllers/dbController').get(),
   _ = require('lodash'),
   bitcoin = require('bitcoinjs-lib'),
-  keyMessages = require('../../factories/messages/keysMessages'),
-  genericMessages = require('../../factories/messages/genericMessages');
+  keyMessages = require('../../factories/messages/keysMessages');
 
 /**
  * @function
@@ -17,7 +16,7 @@ const dbInstance = require('../../controllers/dbController').get(),
  * @param res - response object
  * @return {Promise<*>}
  */
-module.exports = async (req, res) => {
+module.exports = async (req, res, next) => {
 
   if (!_.isArray(req.body))
     req.body = [req.body];
@@ -27,15 +26,49 @@ module.exports = async (req, res) => {
   if (!allKeysValid)
     return res.send(keyMessages.badParams);
 
-  for (let operation of req.body) 
+  for (let operation of req.body)
 
     if (operation.multisig) {
 
+      let keys = await dbInstance.models.Keys.findAll({
+        where: {
+          address: {
+            $in: operation.keys.map(key => key.address)
+          }
+        }
+      });
+
+      let permissions = await req.client.getPermissions({
+        where: {
+          KeyId: {
+            $in: keys.map(key => key.id)
+          }
+        },
+        include: [{
+          model: dbInstance.models.Keys,
+          required: true
+        }]
+      });
+
+
+      for (let key of operation.keys) {
+        let permissionsById = _.filter(permissions, permission => permission.Key.address === key.address);
+        if (!permissionsById.length)
+          return res.send(keyMessages.badParams);
+
+        key.id = permissionsById[0].Key.id;
+
+        if (permissionsById[0].owner)
+          continue;
+
+        if (!_.find(permissionsById, {deriveIndex: key.index}))
+          return res.send(keyMessages.badParams);
+      }
 
       let pubKeys = await dbInstance.models.PubKeys.findAll({
         where: {
           $or: operation.keys.map(item => ({
-            KeyAddress: item.address,
+            KeyId: item.id,
             index: parseInt(item.index || 0),
             blockchain: operation.blockchain
           }))
@@ -46,7 +79,7 @@ module.exports = async (req, res) => {
       });
 
       const sortedKeys = operation.keys.map(key => _.find(pubKeys, {
-        KeyAddress: key.address,
+        KeyId: key.id,
         index: parseInt(key.index || 0)
       }));
 
@@ -56,7 +89,8 @@ module.exports = async (req, res) => {
       const multisigAddress = bitcoin.address.fromOutputScript(scriptPubKey, bitcoin.networks.testnet);
 
 
-      await dbInstance.models.Keys.create({
+      let createdKeyRecord = await dbInstance.models.Keys.create({
+        ClientId: req.client.id,
         address: multisigAddress,
         isVirtual: true,
         privateKey: scriptPubKey.toString('hex'),
@@ -64,11 +98,10 @@ module.exports = async (req, res) => {
         requiredCount: operation.required || rawPubKeys.length
       });
 
-
       for (let index = 0; index < sortedKeys.length; index++)
         await dbInstance.models.VirtualKeyPubKeys.create({
           PubKeyId: sortedKeys[index].id,
-          KeyAddress: multisigAddress,
+          KeyId: createdKeyRecord.id,
           orderIndex: index
         });
 
@@ -77,14 +110,14 @@ module.exports = async (req, res) => {
         ClientId: req.client.id,
         owner: true,
         deriveIndex: 0,
-        KeyAddress: multisigAddress
+        KeyId: createdKeyRecord.id
       });
 
+      operation.address = createdKeyRecord.address;
 
     }
 
-  
+  req.params.address = req.body.map(item=>item.address);
 
-
-  return res.send(genericMessages.success);
+  next();
 };

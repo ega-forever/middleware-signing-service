@@ -21,11 +21,15 @@ module.exports = async (sequelize) => {
     models[modelName](sequelize);
 
   sequelize.models.Clients.hasMany(sequelize.models.Permissions, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+  sequelize.models.Clients.hasMany(sequelize.models.Keys, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
+
+
   sequelize.models.Keys.hasMany(sequelize.models.Permissions, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
   sequelize.models.Keys.hasMany(sequelize.models.PubKeys, {foreignKey: {allowNull: false}, onDelete: 'CASCADE'});
   sequelize.models.Permissions.belongsTo(sequelize.models.Clients, {foreignKey: {allowNull: false}});
   sequelize.models.Permissions.belongsTo(sequelize.models.Keys, {foreignKey: {allowNull: false}});
   sequelize.models.PubKeys.belongsTo(sequelize.models.Keys, {foreignKey: {allowNull: false}});
+
 
   sequelize.models.VirtualKeyPubKeys.belongsTo(sequelize.models.PubKeys, {
     foreignKey: {allowNull: false},

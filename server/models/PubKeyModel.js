@@ -17,20 +17,22 @@ const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 
   return sequelize.define('PubKeys', {
-    pubKey: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      unique: 'compositeIndex'
+      pubKey: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      blockchain: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      index: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+      }
     },
-    blockchain: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      unique: 'compositeIndex'
-    },
-    index: {
-      type: Sequelize.INTEGER,
-      allowNull: false
-    }
-  });
-
+    {
+      indexes: [
+        {unique: true, fields: ['pubKey', 'blockchain', 'KeyId']}
+      ]
+    });
 };

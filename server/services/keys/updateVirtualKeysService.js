@@ -24,17 +24,28 @@ module.exports = async (req, res) => {
   if (req.body.address)
     req.body = [req.body];
 
-  let permissions = await req.client.getPermissions();
 
-  let permissionAddresses = _.chain(permissions).filter({owner: true}).map(permission => permission.KeyAddress).value();
-
-  const keys = await dbInstance.models.Keys.findAll({
+  let keys = await dbInstance.models.Keys.findAll({
     where: {
       address: {
-        $in: _.chain(permissions)
-          .map(permission => permission.KeyAddress)
-          .filter(address => permissionAddresses.includes(address))
-          .value()
+        $in: req.body.map(op=>op.address)
+      }
+    }
+  });
+
+  let permissions = await req.client.getPermissions({ //todo refactor
+    where: {
+      KeyId: {
+        $in: keys.map(key=>key.id)
+      },
+      owner: true
+    }
+  });
+
+  keys = await dbInstance.models.Keys.findAll({
+    where: {
+      id: {
+        $in: permissions.map(permission => permission.KeyId)
       },
       isVirtual: true
     }
@@ -49,14 +60,7 @@ module.exports = async (req, res) => {
 
   for (let operation of req.body) {
 
-    let key = await dbInstance.models.Keys.findOne({
-      where: {
-        address: operation.address
-      },
-      include: {
-        model: dbInstance.models.PubKeys
-      }
-    });
+    let key = _.find(keys, {address: operation.address});
 
     if (!key)
       continue;
@@ -72,7 +76,7 @@ module.exports = async (req, res) => {
       let excitingPermission = await dbInstance.models.Permissions.findOne({
         where: {
           ClientId: client.id,
-          KeyAddress: key.address
+          KeyId: key.id
         }
       });
 
@@ -80,7 +84,7 @@ module.exports = async (req, res) => {
         await dbInstance.models.Permissions.destroy({
           where: {
             ClientId: client.id,
-            KeyAddress: key.address
+            KeyId: key.id
           }
         });
 
@@ -89,7 +93,7 @@ module.exports = async (req, res) => {
           ClientId: client.id,
           owner: false,
           deriveIndex: 0,
-          KeyAddress: key.address
+          KeyId: key.id
         });
 
     }

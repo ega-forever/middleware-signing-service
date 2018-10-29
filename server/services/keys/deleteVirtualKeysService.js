@@ -24,17 +24,26 @@ module.exports = async (req, res) => {
   if (req.body.address)
     req.body = [req.body.address];
 
-  let permissions = await req.client.getPermissions({where: {KeyAddress: {$in: req.body}}});
+  let keys = await dbInstance.models.Keys.findAll({
+    where: {
+      address: {
+        $in: req.body
+      }
+    },
+    attributes: ['id']
+  });
+
+  let permissions = await req.client.getPermissions({where: {KeyId: {$in: keys.map(key=>key.id)}}});
 
   if (!permissions.length)
     return res.send(keyMessages.badParams);
 
   let groupedPermissions = _.chain(permissions)
     .map(permission => permission.toJSON())
-    .groupBy('KeyAddress')
+    .groupBy('KeyId')
     .toPairs()
     .map(pair => ({
-      address: pair[0],
+      id: parseInt(pair[0]),
       permissions: pair[1]
     }))
     .value();
@@ -47,7 +56,7 @@ module.exports = async (req, res) => {
 
     let isVirtual = await dbInstance.models.Keys.count({
       where: {
-        address: group.address,
+        id: group.id,
         isVirtual: true
       }
     });
@@ -57,20 +66,20 @@ module.exports = async (req, res) => {
 
     await dbInstance.models.Keys.destroy({
       where: {
-        address: group.address
+        id: group.id
       }
     });
 
     await dbInstance.models.Permissions.destroy({
       where: {
-        KeyAddress: group.address
+        KeyId: group.id
       }
     });
 
 
     await dbInstance.models.VirtualKeyPubKeys.destroy({
       where: {
-        KeyAddress: group.address
+        KeyId: group.id
       }
     });
 

@@ -22,8 +22,6 @@ module.exports = async (req, res) => {
   if (!plugins.plugins[req.params.blockchain] || !req.body.payload)
     return res.send(signMessages.wrongPayload);
 
-  let permissions = await req.client.getPermissions();
-
   if (req.body.signers) {
 
     for (let index = 0; index < req.body.signers.length; index++) {
@@ -33,7 +31,12 @@ module.exports = async (req, res) => {
       let pubKey = await dbInstance.models.PubKeys.findOne({
         where: {
           pubKey: req.body.signers[index]
-        }
+        },
+        include: [
+          {
+            model: dbInstance.models.Keys
+          }
+        ]
       });
 
       if (!pubKey) {
@@ -41,7 +44,7 @@ module.exports = async (req, res) => {
         continue;
       }
 
-      req.body.signers[index] = pubKey.KeyAddress;
+      req.body.signers[index] = pubKey.Key.address;
 
       _.has(req.body, `options.useKeys.${req.body.signers[index]}`) ?
         req.body.options.useKeys[req.body.signers[index]].push(pubKey.index) :
@@ -52,27 +55,29 @@ module.exports = async (req, res) => {
   }
 
 
-  let keys = req.body.signers ? await dbInstance.models.Keys.findAll({
-      where: {
-        address: {
-          $in: _.intersection(permissions.map(permission => permission.KeyAddress), req.body.signers.map(signers => signers))
+  let permissions = await req.client.getPermissions({
+    include: [
+      {
+        model: dbInstance.models.Keys,
+        required: true,
+        where: req.body.signers ? {
+          address: {
+            $in: req.body.signers
+          }
+        } : {
+          default: true
         }
       }
-    }) :
-    [await dbInstance.models.Keys.findOne({
-      where: {
-        address: {
-          $in: permissions.map(permission => permission.KeyAddress)
-        },
-        default: true
-      }
-    })];
+    ]
+  });
+
+
+  let keys = permissions.map(permission => permission.Key.toJSON());
 
   if (!_.compact(keys).length)
     return res.send(signMessages.wrongKey);
 
   const plugin = new plugins.plugins[req.params.blockchain](config.network);
-  keys = keys.map(key => key.toJSON());
 
   if (req.body.signers)
     keys = _.chain(req.body.signers)
@@ -81,13 +86,15 @@ module.exports = async (req, res) => {
       .value();
 
 
-  let sharedKeyPermissions = _.filter(permissions, permission => !permission.owner && req.body.signers.includes(permission.KeyAddress));
+  let sharedKeyPermissions = _.filter(permissions, permission => !permission.owner);
 
 
   if (_.has(req.body, 'options.useKeys'))
     for (let address of Object.keys(req.body.options.useKeys)) {
 
-      let keyPermissions = _.filter(permissions, {KeyAddress: address});
+      let key = _.find(keys, {address: address});
+
+      let keyPermissions = _.filter(permissions, {KeyId: key.id});
 
       if (!keyPermissions.length) {
         delete req.body.options.useKeys[address];
@@ -103,11 +110,13 @@ module.exports = async (req, res) => {
 
 
     } else if (sharedKeyPermissions.length)
-    _.chain(sharedKeyPermissions).groupBy('address')
+    _.chain(sharedKeyPermissions).groupBy('KeyId')
       .toPairs().forEach(pair => {
       if (!_.has(req.body, 'options.useKeys'))
         _.set(req.body, 'options.useKeys', {});
-      req.body.options.useKeys[pair[0]] = pair[1].map(item => item.index);
+
+      let address = _.find(keys, {id: parseInt(pair[0])}).address;
+      req.body.options.useKeys[address] = pair[1].map(item => item.index);
     })
       .value();
 
@@ -120,7 +129,7 @@ module.exports = async (req, res) => {
 
       let virtuals = await dbInstance.models.VirtualKeyPubKeys.findAll({
         where: {
-          KeyAddress: virtualKey.address
+          KeyId: virtualKey.id
         },
         include: [
           {

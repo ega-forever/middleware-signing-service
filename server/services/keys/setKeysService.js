@@ -65,6 +65,7 @@ module.exports = async (req, res, next) => {
     });
 
     let keyRecord = await dbInstance.models.Keys.create({
+      ClientId: req.client.id,
       pubKeysCount: key.pubKeys || 1,
       isStageChild: !!key.stageChild,
       privateKey: extendedKey || key.key,
@@ -91,7 +92,7 @@ module.exports = async (req, res, next) => {
       ClientId: req.client.id,
       owner: true,
       deriveIndex: 0,
-      KeyAddress: keyRecord.address
+      KeyId: keyRecord.id
     });
 
   }

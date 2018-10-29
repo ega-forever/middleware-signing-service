@@ -4,9 +4,7 @@
  * @author Egor Zuev <zyev.egor@gmail.com>
  */
 
-const addClientService = require('../services/clients/addClientService'),
-  deleteClientService = require('../services/clients/deleteClientService'),
-  logActionMiddleware = require('../middleware/logActionMiddleware'),
+const deleteClientService = require('../services/clients/deleteClientService'),
   clientValidationMiddleware = require('../middleware/clientValidationMiddleware'),
   config = require('../config'),
   lib = require('middleware_auth_lib'),
@@ -19,8 +17,6 @@ const addClientService = require('../services/clients/addClientService'),
 module.exports = (router, wrapper) => {
 
   router.use(auth);
-
-  router.post('/', logActionMiddleware, wrapper(addClientService));
 
   router.delete('/', clientValidationMiddleware, wrapper(deleteClientService));
 

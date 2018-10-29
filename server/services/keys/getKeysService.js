@@ -22,17 +22,30 @@ module.exports = async (req, res) => {
   let permissions = await req.client.getPermissions();
 
   if (req.params.address) {
-    if (!_.isArray(req.params.address))
+    if (!_.isArray(req.params.address)) {
+      req.params.single = true;
       req.params.address = [req.params.address];
+    }
 
-    permissions = _.filter(permissions, permission => req.params.address.includes(permission.KeyAddress));
+
+    let keys = await dbInstance.models.Keys.findAll({
+      where: {
+        address: {
+          $in: req.params.address
+        }
+      },
+      attributes: ['id']
+    });
+
+    keys = keys.map(key => key.id);
+    permissions = _.filter(permissions, permission => keys.includes(permission.KeyId));
   }
 
 
   let keys = await dbInstance.models.Keys.findAll({
     where: {
-      address: {
-        $in: permissions.map(permission => permission.KeyAddress)
+      id: {
+        $in: permissions.map(permission => permission.KeyId)
       }
     },
     include: [{
@@ -45,17 +58,18 @@ module.exports = async (req, res) => {
   });
 
 
-  keys = _.chain(permissions).groupBy('KeyAddress').toPairs().map(pair => {
+  keys = _.chain(permissions).groupBy('KeyId').toPairs().map(pair => {
 
-    const address = pair[0];
+    const id = parseInt(pair[0]);
     const permissions = pair[1];
     const isOwner = !!_.find(permissions, {owner: true});
 
-    let key = _.find(keys, {address: address});
+    let key = _.find(keys, {id: id});
+
     key = key.toJSON();
 
     const extendedKey = extractExtendedKey(key.privateKey);
-    const rootPublicKey = extendedKey ? hdkey.fromExtendedKey(extendedKey).publicExtendedKey() : Wallet.fromPrivateKey(Buffer.from(key.privateKey.replace('0x', ''), 'hex')).getPublicKey().toString('hex');
+    const rootPublicKey = key.isVirtual ? null : extendedKey ? hdkey.fromExtendedKey(extendedKey).publicExtendedKey() : Wallet.fromPrivateKey(Buffer.from(key.privateKey.replace('0x', ''), 'hex')).getPublicKey().toString('hex');
 
     const indexes = isOwner ? (key.isStageChild ? [key.pubKeysCount - 1] : _.range(0, key.pubKeysCount)) :
       (key.isStageChild ? [key.pubKeysCount - 1] : permissions.map(permission => permission.deriveIndex));
@@ -102,7 +116,7 @@ module.exports = async (req, res) => {
 
   })
     .thru(keys =>
-      req.params.address && !_.isArray(req.params.address) ? _.get(keys, '0', {}) : keys
+      req.params.single ? _.get(keys, '0', {}) : keys
     )
     .value();
 

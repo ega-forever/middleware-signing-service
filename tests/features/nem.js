@@ -14,7 +14,14 @@ const _ = require('lodash'),
   web3 = new Web3(),
   hdkey = require('ethereumjs-wallet/hdkey'),
   xor = require('buffer-xor'),
-  nem = require('nem-sdk').default;
+  config = require('../../server/config'),
+  nem = require('nem-sdk').default,
+  lib = require('middleware_auth_lib'),
+  tokenLib = new lib.Token({
+    id: config.auth.serviceId,
+    provider: config.auth.provider,
+    secret: '123'
+  });
 
 module.exports = (ctx) => {
 
@@ -36,26 +43,75 @@ module.exports = (ctx) => {
 
     ctx.keys.push(...keys);
 
-    const reply = await request({
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
+    const keys2 = await request({
       uri: 'http://localhost:8080/keys',
       method: 'POST',
       json: keys,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
-    expect(reply.status).to.eq(1);
+
+
+    for (let item of keys) {
+
+      if (item.key.length <= 66) {
+        let privateKey = item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
+        const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+        const address = account.address.toLowerCase();
+
+        privateKey = privateKey.replace('0x', '');
+
+        const part1 = Buffer.from(privateKey.substr(0, 64), 'hex');
+        const part2 = Buffer.from(privateKey.substr(64, 64), 'hex');
+        const hex = xor(part1, part2).toString('hex');
+        let keyPair = nem.crypto.keyPair.create(hex);
+
+        let key = _.find(keys2, {address: address});
+        expect(key.pubKeys[0].nem === keyPair.publicKey.toString()).to.eq(true);
+        expect(key).to.not.eq(null);
+        continue;
+      }
+
+      const seed = bip39.mnemonicToSeed(item.key);
+      let hdwallet = hdkey.fromMasterSeed(seed);
+      const extendedPrivKey = hdwallet.privateExtendedKey();
+      const privateKey = hdkey.fromExtendedKey(extendedPrivKey).getWallet().getPrivateKey();
+      const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+      const address = account.address.toLowerCase();
+
+      let key = _.find(keys2, {address: address});
+
+      for (let pubKey of key.pubKeys) {
+
+        let privateKey = hdwallet.derivePath(`m/44'/${ctx.derivePurpose.nem}'/0'/0/${pubKey.index}`).getWallet().getPrivateKey().toString('hex');
+        const part1 = Buffer.from(privateKey.substr(0, 64), 'hex');
+        const part2 = Buffer.from(privateKey.substr(64, 64), 'hex');
+        const hex = xor(part1, part2).toString('hex');
+        let keyPair = nem.crypto.keyPair.create(hex);
+        expect(pubKey.nem === keyPair.publicKey.toString()).to.eq(true);
+      }
+
+      expect(key).to.not.eq(null);
+    }
+
+
+
   });
 
   it('validate get keys route', async () => {
+
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -132,6 +188,8 @@ module.exports = (ctx) => {
 
     const signedTx = nem.model.transactions.prepare(txParams.type)(common, txParams.tx, nem.model.network.data.testnet.id);
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const reply = await request({
       uri: 'http://localhost:8080/tx/nem',
       method: 'POST',
@@ -140,7 +198,7 @@ module.exports = (ctx) => {
         payload: txParams
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 

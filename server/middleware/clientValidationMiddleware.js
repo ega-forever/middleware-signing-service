@@ -16,8 +16,6 @@ const dbInstance = require('../controllers/dbController').get(),
  */
 module.exports = async (req, res, next) => {
 
-  console.log(res.locals.data)
-
   if (!_.has(res, 'locals.data.userId'))
     return res.status(401).send(genericMessages.fail); //todo make error
 

@@ -51,10 +51,10 @@ module.exports = async (req, res) => {
     include: [{
       model: dbInstance.models.PubKeys
     },
-      {
-        model: dbInstance.models.VirtualKeyPubKeys,
-        include: [{model: dbInstance.models.PubKeys}]
-      }]
+    {
+      model: dbInstance.models.VirtualKeyPubKeys,
+      include: [{model: dbInstance.models.PubKeys}]
+    }]
   });
 
 

@@ -16,48 +16,48 @@ const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 
   return sequelize.define('Keys', {
-      address: {
-        type: Sequelize.STRING,
-        allowNull: false
-      },
-      privateKey: {
-        type: Sequelize.STRING,
-        allowNull: false,
-        unique: false
-      },
-      info: {
-        type: Sequelize.STRING,
-        allowNull: true
-      },
-      pubKeysCount: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        defaultValue: 1
-      },
-      isStageChild: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-      },
-      isVirtual: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-      },
-      requiredCount: {
-        type: Sequelize.INTEGER,
-        allowNull: true
-      },
-      default: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-      }
+    address: {
+      type: Sequelize.STRING,
+      allowNull: false
     },
-    {
-      indexes: [
-        {unique: true, fields: ['ClientId', 'address']}
-        ]
-    });
+    privateKey: {
+      type: Sequelize.STRING,
+      allowNull: false,
+      unique: false
+    },
+    info: {
+      type: Sequelize.STRING,
+      allowNull: true
+    },
+    pubKeysCount: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 1
+    },
+    isStageChild: {
+      type: Sequelize.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    isVirtual: {
+      type: Sequelize.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    requiredCount: {
+      type: Sequelize.INTEGER,
+      allowNull: true
+    },
+    default: {
+      type: Sequelize.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    }
+  },
+  {
+    indexes: [
+      {unique: true, fields: ['ClientId', 'address']}
+    ]
+  });
 
 };

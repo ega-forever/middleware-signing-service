@@ -17,7 +17,14 @@ const _ = require('lodash'),
   Promise = require('bluebird'),
   path = require('path'),
   fs = require('fs'),
-  spawn = require('child_process').spawn;
+  config = require('../../server/config'),
+  spawn = require('child_process').spawn,
+  lib = require('middleware_auth_lib'),
+  tokenLib = new lib.Token({
+    id: config.auth.serviceId,
+    provider: config.auth.provider,
+    secret: '123'
+  });
 
 module.exports = (ctx) => {
 
@@ -39,9 +46,9 @@ module.exports = (ctx) => {
 
   it('save 2 private keys', async () => {
 
-    const keys = [];
+    let keys = [];
 
-    for(let index = 0;index < 2;index++){
+    for (let index = 0; index < 2; index++) {
       const seed = bip39.generateMnemonic();
       let hdwallet = hdkey.fromMasterSeed(seed);
       const extendedPrivKey = hdwallet.privateExtendedKey();
@@ -51,32 +58,71 @@ module.exports = (ctx) => {
 
     ctx.keys.push(...keys);
 
-    const reply = await request({
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
+    const keys2 = await request({
       uri: 'http://localhost:8080/keys',
       method: 'POST',
       json: keys,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
-    expect(reply.status).to.eq(1);
+
+    for (let item of keys) {
+
+      if (item.key.length <= 66) {
+        const privateKey = item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
+        const account = ctx.web3.eth.accounts.privateKeyToAccount(privateKey);
+        const address = account.address.toLowerCase();
+
+        let key = _.find(keys2, {address: address});
+        for (let pubKey of key.pubKeys) {
+          const ethPubKey = Wallet.fromPrivateKey(Buffer.from(item.key.replace('0x', ''), 'hex')).getPublicKey().toString('hex');
+          expect(pubKey.eth === ethPubKey).to.eq(true);
+        }
+
+        expect(key).to.not.eq(null);
+        continue;
+      }
+
+      const seed = bip39.mnemonicToSeed(item.key);
+      let hdwallet = hdkey.fromMasterSeed(seed);
+      const extendedPrivKey = hdwallet.privateExtendedKey();
+      const privateKey = hdkey.fromExtendedKey(extendedPrivKey).getWallet().getPrivateKey();
+      const account = ctx.web3.eth.accounts.privateKeyToAccount(privateKey);
+      const address = account.address.toLowerCase();
+
+      let key = _.find(keys2, {address: address});
+
+      for (let pubKey of key.pubKeys) {
+        const ethPubKey = hdwallet.derivePath(`m/44'/60'/0'/0/${pubKey.index}`).getWallet().getPublicKey().toString('hex');
+        expect(pubKey.eth === ethPubKey).to.eq(true);
+      }
+
+      expect(key).to.not.eq(null);
+    }
+
   });
 
   it('validate get keys route', async () => {
+
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
 
     const keys = await request({
       uri: 'http://localhost:8080/keys',
       method: 'GET',
       json: true,
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
     expect(_.filter(keys, {shared: false}).length).to.eq(ctx.keys.length);
 
-    let clientCreatedKeys = _.reject(ctx.keys, key=> key.info && key.info.includes('generated'));
+    let clientCreatedKeys = _.reject(ctx.keys, key => key.info && key.info.includes('generated'));
     for (let item of clientCreatedKeys) {
 
       if (item.key.length <= 66) {
@@ -112,18 +158,22 @@ module.exports = (ctx) => {
     }
   });
 
-  it('send some eth to created address', async ()=>{
+  it('send some eth to created address', async () => {
 
     const keyA = _.chain(ctx.keys)
       .find(item => item.key && item.key.length <= 66).thru(item => {
-      return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
-    }).value();
+        return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
+      }).value();
 
     const accounts = await ctx.web3.eth.getAccounts();
     const account = ctx.web3.eth.accounts.privateKeyToAccount(keyA);
     const address = account.address.toLowerCase();
 
-    let tx = await ctx.web3.eth.sendTransaction({from: accounts[0], to: address, value: ctx.web3.utils.toHex(Math.pow(10, 17) + '')});
+    let tx = await ctx.web3.eth.sendTransaction({
+      from: accounts[0],
+      to: address,
+      value: ctx.web3.utils.toHex(Math.pow(10, 17) + '')
+    });
     expect(tx.blockNumber).to.be.gt(0);
   });
 
@@ -132,8 +182,8 @@ module.exports = (ctx) => {
 
     const keyA = _.chain(ctx.keys)
       .find(item => item.key && item.key.length <= 66).thru(item => {
-      return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
-    }).value();
+        return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
+      }).value();
 
 
     const accounts = await ctx.web3.eth.getAccounts();
@@ -154,6 +204,9 @@ module.exports = (ctx) => {
     const tx = new EthereumTx(rawTx);
     tx.sign(privateKeyBuffer);
 
+
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
+
     const reply = await request({
       uri: 'http://localhost:8080/tx/eth',
       method: 'POST',
@@ -162,7 +215,7 @@ module.exports = (ctx) => {
         payload: rawTx
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 
@@ -176,8 +229,8 @@ module.exports = (ctx) => {
 
     const keyA = _.chain(ctx.keys)
       .find(item => item.key && item.key.length <= 66).thru(item => {
-      return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
-    }).value();
+        return item.key.indexOf('0x') === 0 ? item.key : `0x${item.key}`;
+      }).value();
 
 
     const accounts = await ctx.web3.eth.getAccounts();
@@ -191,6 +244,7 @@ module.exports = (ctx) => {
       value: _.random(Math.pow(10, 6), Math.pow(10, 8))
     };
 
+    const token = await tokenLib.getUserToken(ctx.client.address.toString(), [config.auth.serviceId]);
 
     const reply = await request({
       uri: 'http://localhost:8080/tx/eth/sign2facall',
@@ -200,7 +254,7 @@ module.exports = (ctx) => {
         payload: payload
       },
       headers: {
-        client_id: ctx.client.clientId
+        authorization: `Bearer ${token}`
       }
     });
 

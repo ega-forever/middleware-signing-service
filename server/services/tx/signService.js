@@ -112,12 +112,12 @@ module.exports = async (req, res) => {
     } else if (sharedKeyPermissions.length)
     _.chain(sharedKeyPermissions).groupBy('KeyId')
       .toPairs().forEach(pair => {
-      if (!_.has(req.body, 'options.useKeys'))
-        _.set(req.body, 'options.useKeys', {});
+        if (!_.has(req.body, 'options.useKeys'))
+          _.set(req.body, 'options.useKeys', {});
 
-      let address = _.find(keys, {id: parseInt(pair[0])}).address;
-      req.body.options.useKeys[address] = pair[1].map(item => item.index);
-    })
+        let address = _.find(keys, {id: parseInt(pair[0])}).address;
+        req.body.options.useKeys[address] = pair[1].map(item => item.index);
+      })
       .value();
 
 
